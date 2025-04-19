@@ -66,3 +66,6 @@
 | CoursesID    | STRING/UUID |
 | StudentID    | STRING/UUID |
 | InstructorID | STRING/UUID |
+
+
+-
