@@ -1,0 +1,79 @@
+*{
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body{
+    background-color: #E9ECEF;
+    font-family: 'Inter', sans-serif;
+}
+
+section{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.top-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin-top: 3rem;
+    font-size: 20px;
+}
+
+.top-container h1{
+    margin-top: 2rem;
+}
+
+.bottom-container{
+    background-color: white;
+    padding: 3rem;
+    margin-top: 2rem;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.student{
+    background-color: #09B3AD;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    padding-left: 6rem;
+    padding-right: 6rem;
+    margin-bottom: 1.5rem;
+}
+
+.instructor{
+    background-color: #09B3AD;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    padding-left: 6rem;
+    padding-right: 6rem;
+    margin-bottom: 1.5rem;
+}
+
+.FS{
+    background-color: #09B3AD;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    padding-left: 6rem;
+    padding-right: 6rem;
+}
+
+.student, .instructor, .FS{
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    border-radius: 6px;
+    font-size: 30px;
+    font-weight: 500;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+}
+
+.student:hover, .instructor:hover, .FS:hover {
+    background-color: #007D7A;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}

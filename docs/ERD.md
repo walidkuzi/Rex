@@ -3,7 +3,7 @@
 
 | Column          | Type        |
 | --------------- | ----------- |
-| ID              | STRING/UUID |
+| ID              | STRING |
 | First/Last name | STRING      |
 | Password        | STRING      |
 | Email           | STRING      |
@@ -16,7 +16,7 @@
 | --------------- | ----------- |
 | ID              | STRING      |
 | Name            | STRING      |
-| createdByUserId | STRING/UUID |
+| createdByUserId | STRING |
 | CreatedAt       | Timestamp   |
 
 ---
@@ -25,15 +25,15 @@
 
 | Column           | Type        |
 | ---------------- | ----------- |
-| CourseID         | STRING      |
+| ID         | STRING      |
 | Letters          | STRING      |
 | ExamDate         | Date        |
 | Deadline         | Date        |
 | ExamLocation     | STRING      |
 | CreatedAt        | Timestamp   |
-| createdBy        | STRING/UUID |
-| InstructorID     | STRING/UUID |
-| StudentID        | STRING/UUID |
+| createdBy        | STRING |
+| InstructorID     | STRING |
+| StudentID        | STRING |
 | AddedAtByStudent | Timestamp   |
 
 ---
@@ -43,7 +43,7 @@
 
 | Column     | Type        |
 | ---------- | ----------- |
-| ID         | STRING/UUID |
+| ID         | STRING |
 | Courses    | STRING      |
 | ResitExams | STRING      |
 
@@ -53,7 +53,7 @@
 
 | Column     | Type        |
 | ---------- | ----------- |
-| ID         | STRING/UUID |
+| ID         | STRING |
 | Courses    | STRING      |
 | ResitExams | STRING      |
 
@@ -61,11 +61,11 @@
 
 | Column       | Type        |
 | ------------ | ----------- |
-| ID           | STRING/UUID |
-| ExamID       | STRING/UUID |
-| CoursesID    | STRING/UUID |
-| StudentID    | STRING/UUID |
-| InstructorID | STRING/UUID |
+| ID           | STRING |
+| ExamID       | STRING |
+| CoursesID    | STRING |
+| StudentID    | STRING |
+| InstructorID | STRING |
 
 
 
@@ -195,4 +195,4 @@ encrypted and stored in the database.
 ```
 
   
-
+  
