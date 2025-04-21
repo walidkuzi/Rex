@@ -1,12 +1,12 @@
 import express, { Request, Response, RequestHandler } from 'express';
-import { db } from './datastore'; // Assuming this is your custom DB layer
 import path from 'path';
+import { addCourseToStudent, addRistExamToStudent, createAstudent, deleteStudent, getAstudent, getStudentCourses, getStudentResitExams, removeStudentFromCourse, removeStudentFromResitExam, updateStudentInfo } from './hundlers/studentHandler';
 // import studentRoutes from './routes/student';
 
 const app = express();
 app.use(express.json()); // Enable JSON parsing
 
-// Middleware for logging requests
+// Middleware for logging requests in console
 const RequestMiddleware: RequestHandler = (req, res, next) => {
   console.log('New request:', req.method, req.path, '- body:', req.body);
   next();
@@ -15,38 +15,42 @@ const RequestMiddleware: RequestHandler = (req, res, next) => {
 app.use(RequestMiddleware);
 
 
-// app.use('/student', studentRoutes); // where studentRoutes is an `express.Router()`
-
-
 
 // GET student by ID
-app.get('/student/:id', (req: Request<{ id: string }>, res: Response) => {
-  const id = req.params.id;
-  const student = db.getStudentById(id);
-
-  if (student) {
-    res.status(200).json(student);
-  } else {
-    res.status(404).send('Student not found');
-  }
-});
+app.get('/student/:id', getAstudent);
 
 // create a student: id, name , email, password
-app.post('/student', (req: Request, res: Response) : any=> {
-  const { id, name, email, password } = req.body;
+app.post('/student', createAstudent );
 
-  if (!id || !name || !email || !password) {
-    return res.status(400).send('Missing required fields: id, name, email, password');
-  }
+// delete a student by id
+app.delete('/student/:id/:secretaryId', deleteStudent);
 
-  // You can pass hardcoded values for createdBy and secretaryId for now
-  const secretaryId = "sec-001"; // example
-  db.createStudent(id, secretaryId, name, email, password);
+// update student information
+app.put('/student/:id/:secretaryId', updateStudentInfo);
 
-  res.status(201).send('Student created');
-});
+// add a course to a student
+app.post('/student/:id/course/:course/:secretaryId', addCourseToStudent);
+
+// add a resit exam to a student
+app.post('/student/:id/resitExam', addRistExamToStudent);
+
+// remove a student from a course
+app.delete('/student/:id/course/:courseId/:secretaryId', removeStudentFromCourse);
+
+// remove a student from a resit exam
+app.delete('/student/:id/resitExam/:resitExamId', removeStudentFromResitExam);
+
+// get student's resit exams by id
+app.get('/student/:id/resitExams', getStudentResitExams);
+
+// get student's courses by id
+app.get('/student/:id/courses', getStudentCourses);
 
 
+
+// app.get('/home', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../web','resitexam.html'));  
+// });
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');

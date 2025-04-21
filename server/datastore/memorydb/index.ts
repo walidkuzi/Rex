@@ -3,13 +3,23 @@ import { Course, Secretary, ResitExam, Instructor, Student, User } from "../../t
 
 export class inMemoryDatastore implements datastore {
 
-  private secretary: Secretary[] = ['1', '2', '3'].map((id) => ({
-    id,
-    name: `Secretary ${id}`,
-    especialId: `ESP${id}`,
-    email: `secretary${id}@example.com`,
-    password: `password${id}`
-  }));
+  private secretary: Secretary[] = [
+    {
+      id: "sec-001",
+      name: "Fatima Ibrahim",
+      especialId: "ESP001",
+      email: "fatima.ibrahim@example.com",
+      password: "secret123"
+    },
+    {
+      id: "sec-002",
+      name: "Mohamed Yusuf",
+      especialId: "ESP002",
+      email: "mohamed.yusuf@example.com",
+      password: "secret456"
+    }
+  ];
+  
 
   private student: Student[] = [  {
     id: "001",
@@ -106,7 +116,7 @@ export class inMemoryDatastore implements datastore {
   }
 
 
-  addCourseToStudent(studentId: string, courseId: string): void {
+  addCourseToStudent(studentId: string, courseId: string, secretaryId: string): void {
     // Check if the secretary Id is extists 
     if (this.getCourseById(courseId) === undefined) {
       throw new Error("Course not found");
@@ -136,11 +146,15 @@ export class inMemoryDatastore implements datastore {
   }
 
   
-  removeStudentFromCourse(studentId: string, courseId: string): void {
+  removeStudentFromCourse(studentId: string, courseId: string, secretaryId: string): void {
+    // Check if the secretary Id is extists and authorized
+    if (this.getSecretaryById(secretaryId) === undefined) {
+      throw new Error("Unauthorized");
+    }
     // Check if the course Id is extists
     if (this.getCourseById(courseId) === undefined) {
       throw new Error("Course not found");
-    }
+    } 
     // Check if the student Id is extists
     if (this.getStudentById(studentId) === undefined) {
       throw new Error("Student not found");
