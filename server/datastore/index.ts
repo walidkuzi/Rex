@@ -1,7 +1,13 @@
-import { CourseDao } from './courseDao';
-import { InstructorDao } from './instructorDao';
-import { ResitExamDao } from './resitExamDao';
-import { StudentDao } from './studentDao';
-import { UserDao } from './userDao';
+import { CourseDao } from './CourseDao';
+import { InstructorDao } from './InstructorDao';
+import { inMemoryDatastore } from './memorydb';
+import { ResitExamDao } from './ResitExamDao';
+import { StudentDao } from './StudentDao';
 
-export interface datastore extends UserDao, CourseDao, InstructorDao, ResitExamDao, StudentDao {}
+export interface datastore extends  CourseDao, InstructorDao, ResitExamDao, StudentDao {}
+
+
+// This is the in-memory implementation of the datastore
+// singleton instance of the in-memory datastore
+// db.access all the methods of the datastore
+export const db = new inMemoryDatastore();
