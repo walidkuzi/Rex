@@ -1,11 +1,11 @@
 import { Instructor, ResitExam, Secretary, Student } from '../types';
 
 export interface StudentDao {
-  createStudent(id: string, secretaryId: string, stdname: string, stdEmail: string, stdPasswerd: string): void;
+  createStudent(student: Student): void;
   deleteStudent(id: string, secretaryID: string): void;
   updateStudentInfo(id: string, name: string, email: string, password: string ,secretaryId: string): void;
-  addCourseToStudent(studentId: string, reExamId: string, secretaryId: string): void;
-  addRistExamToStudent(studentId: string, resitExamId: string): void;
+  addCourseToStudent(studentId: string, courseId: string, secretaryId: string): boolean;
+  addRistExamToStudent(studentId: string, resitExamId: string): boolean;
   removeStudentFromCourse(studentId: string, courseId: string, secretaryId: string): void;
   removeStudentFromResitExamFrom(studentId: string, resitExamId: string): void;
   

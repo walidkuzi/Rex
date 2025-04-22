@@ -29,13 +29,13 @@ app.delete('/student/:id/:secretaryId', deleteStudent);
 app.put('/student/:id/:secretaryId', updateStudentInfo);
 
 // add a course to a student
-app.post('/student/:id/course/:course/:secretaryId', addCourseToStudent);
+app.put('/student', addCourseToStudent);
 
 // add a resit exam to a student
-app.post('/student/:id/resitExam', addRistExamToStudent);
+app.post('/student/:id', addRistExamToStudent);
 
 // remove a student from a course
-app.delete('/student/:id/course/:courseId/:secretaryId', removeStudentFromCourse);
+app.delete('/student/:id', removeStudentFromCourse);
 
 // remove a student from a resit exam
 app.delete('/student/:id/resitExam/:resitExamId', removeStudentFromResitExam);

@@ -33,7 +33,7 @@ export interface Student extends User {
   resitExams: string[];
   createdAt: Date;
   createdBy: string;
-  updatedAt: Date;
+  updatedAt: Date | null;
 }
 
 
@@ -60,8 +60,7 @@ export interface ResitExam {
   students: string[];
   createdAt: Date;
   createdBy: string;
-  addedAt: Date;
-  updatedAt: Date;
+  updatedAt: Date | null;
 }
 
 

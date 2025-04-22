@@ -3,6 +3,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, User } from "../../t
 
 export class inMemoryDatastore implements datastore {
 
+  // secretary
   private secretary: Secretary[] = [
     {
       id: "sec-001",
@@ -20,7 +21,7 @@ export class inMemoryDatastore implements datastore {
     }
   ];
   
-
+// tmp students
   private student: Student[] = [  {
     id: "001",
     name: "Yusuf A",
@@ -47,7 +48,20 @@ export class inMemoryDatastore implements datastore {
 ];
 
   private instructor: Instructor[] = [];
-  private resitExam: ResitExam[] = [];
+  private resitExam: ResitExam[] = [{
+    id: "resit-001",
+    name: "Resit Exam 1",
+    department: "Software Engineering",
+    instructor: "inst-001",
+    lettersAllowed: ["A", "B", "C"],
+    examDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days in ms after today
+    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5), // 5 days in ms after today
+    location: "Altenizde Main Kampus A Blcok A Nirmen Tahran",
+    students: [],
+    createdAt: new Date(),
+    createdBy: "sec-001",
+    updatedAt: null
+  }];
   private course: Course[] = [];
 
 
@@ -69,39 +83,25 @@ export class inMemoryDatastore implements datastore {
 
 
   //? Student DAO implementation
-  createStudent(id: string, secretaryId: string, stdname: string, stdEmail: string, stdPasswerd: string): void {
-    const newStudent: Student = {
-      id: id,
-      name: stdname,
-      email: stdEmail,
-      password: "",
-      courses: [],
-      resitExams: [],
-      createdAt: new Date(),
-      createdBy: "",
-      updatedAt: new Date()
-    }
-    this.student.push(newStudent);
+  createStudent(student: Student): void {
+    this.student.push(student);
   }
 
 
-  deleteStudent(id: string, secretary: string): void {
-    // Check if the secretary Id is extists and authorized
-    if (this.getSecretaryById(secretary) === undefined) {
-      throw new Error("Unauthorized");
-    }
+  deleteStudent(id: string, secretary: string): boolean {
+
 
     const index = this.student.findIndex(student => student.id === id);
     if (index !== -1) {
       this.student.splice(index, 1);
+      return true;
     }
+    return false;
   }
 
 
   updateStudentInfo(id: string, name: string, email: string, password: string, secretaryId: string): void {
-    if (this.getSecretaryById(secretaryId) === undefined) {
-      throw new Error("Unauthorized");
-    }
+
     
     const index = this.student.findIndex(student => student.id === id);
     if (index !== -1) {
@@ -116,49 +116,31 @@ export class inMemoryDatastore implements datastore {
   }
 
 
-  addCourseToStudent(studentId: string, courseId: string, secretaryId: string): void {
-    // Check if the secretary Id is extists 
-    if (this.getCourseById(courseId) === undefined) {
-      throw new Error("Course not found");
-    }
-    // Check if the student Id is extists
-    if (this.getStudentById(studentId) === undefined) {
-      throw new Error("Student not found");
-    }
+  addCourseToStudent(studentId: string, courseId: string): boolean  {
+
 
     const student = this.getStudentById(studentId);
     if (student) {
       student.courses.push(courseId);
+      return true;
     }
+    return false;
   }
 
 
-  addRistExamToStudent(studentId: string, resitExamId: string): void {  
-    // check if the ResitExam Id is correct
-    if (this.getResitExam(studentId, resitExamId) === undefined) {
-      throw new Error("Resit exam not found");
-    }
+  addRistExamToStudent(studentId: string, resitExamId: string): boolean {  
+
 
     const student = this.getStudentById(studentId);
     if (student) {    
       student.resitExams.push(resitExamId);
+      return true;
     }
+    return false;
   }
 
   
-  removeStudentFromCourse(studentId: string, courseId: string, secretaryId: string): void {
-    // Check if the secretary Id is extists and authorized
-    if (this.getSecretaryById(secretaryId) === undefined) {
-      throw new Error("Unauthorized");
-    }
-    // Check if the course Id is extists
-    if (this.getCourseById(courseId) === undefined) {
-      throw new Error("Course not found");
-    } 
-    // Check if the student Id is extists
-    if (this.getStudentById(studentId) === undefined) {
-      throw new Error("Student not found");
-    }
+  removeStudentFromCourse(studentId: string, courseId: string): void {
 
     const student = this.getStudentById(studentId);
     if (student) {
@@ -171,14 +153,7 @@ export class inMemoryDatastore implements datastore {
 
 
   removeStudentFromResitExamFrom(studentId: string, resitExamId: string): void { 
-    // Check if the ResitExam Id is extists
-    if (this.getResitExam(studentId, resitExamId) === undefined) {
-      throw new Error("Resit exam not found");
-    }
-    // Check if the student Id is extists
-    if (this.getStudentById(studentId) === undefined) {
-      throw new Error("Student not found");
-    }
+
 
     const student = this.getStudentById(studentId);
     if (student) {  
@@ -473,7 +448,6 @@ export class inMemoryDatastore implements datastore {
       students: [],
       createdAt: new Date(),
       createdBy: isntructorId,
-      addedAt: new Date(),
       updatedAt: new Date() 
     };
     
