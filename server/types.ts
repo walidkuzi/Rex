@@ -21,16 +21,16 @@ export interface Secretary extends User {
 }
 
 export interface Instructor extends User {
-  courses: string[];
-  resitExams: string[];
+  courses: string[]; // must be added not created | added from Course students
+  resitExams: string[]; // must be added not created | added from ResitExam students
   createdAt: Date;
   createdBy: string;
-  updatedAt: Date;
+  updatedAt: Date | null;
 }
 
 export interface Student extends User {
-  courses: string[];
-  resitExams: string[];
+  courses: string[]; // must be added not created | added from Course students
+  resitExams: string[]; // must be added not created | added from ResitExam students
   createdAt: Date;
   createdBy: string;
   updatedAt: Date | null;
@@ -42,17 +42,19 @@ export interface Course {
   id: string;
   name: string;
   department: string;
+  students: string[];  // Array of student IDs
+  instructor: string | undefined; // only one instructor
   createdAt: Date;
   createdBy: string;
-  updatedAt: Date;
-  instructor: string;
+  updatedAt: Date | null;
+
 }
 
 export interface ResitExam {
   id: string;
   name: string;
-  department: string;
-  instructor: string;
+  department: string | undefined;
+  instructor: string ; // must select an instructor
   lettersAllowed: string[];
   examDate: Date;
   deadline: Date;

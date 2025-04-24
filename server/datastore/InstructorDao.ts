@@ -1,7 +1,7 @@
 import { Instructor, ResitExam, Secretary } from '../types';
 
 export interface InstructorDao {
-  createInstructor(id: string, name : string, email: string, password: string ,secretaryId: string): void;
+  createInstructor(instructor: Instructor): void;
   getInstructorById(id: string): Instructor | undefined;
   
   deleteInstructor(id: string, secretaryID: string): void;

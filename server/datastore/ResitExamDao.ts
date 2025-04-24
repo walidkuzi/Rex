@@ -7,5 +7,5 @@ export interface ResitExamDao {
   updateResitExam(id: string, name: string, instructorID: string, department: string, Letters: string[], examDate: Date, deadline: Date, location: string, secretaryId: string): void;
 
   getResitExamsByInstructorId(instructorIDid: string): ResitExam[];
-  getResitExamsByStudentId(studentId: string): ResitExam[];
+  getStudentResitExams(studentId: string): ResitExam[];
 }

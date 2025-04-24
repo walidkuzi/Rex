@@ -9,7 +9,7 @@ export interface StudentDao {
   removeStudentFromCourse(studentId: string, courseId: string, secretaryId: string): void;
   removeStudentFromResitExamFrom(studentId: string, resitExamId: string): void;
   
-  getStudent_ResitExamsById(id: string): string[] | undefined;
-  getStudentById(id: string): Student  | undefined;
-  getStudentCoursesByID(id: string): string[] | undefined;
+  // getStudentResitExams(id: string): string[] | undefined;
+  getAstudent(id: string): Student  | undefined;
+  getStudentCourses(id: string): string[] | undefined;
 }
