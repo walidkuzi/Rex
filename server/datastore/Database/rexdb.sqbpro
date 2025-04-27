@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="/Users/dormikhead/Desktop/Database/rexdb.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="1"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="5552"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><current_table name="4,7:mainFaculty"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="AssignedExamHall" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="113"/><column index="2" value="66"/><column index="3" value="72"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="Course" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="55"/><column index="2" value="72"/><column index="3" value="174"/><column index="4" value="70"/><column index="5" value="80"/><column index="6" value="115"/><column index="7" value="115"/><column index="8" value="106"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="Department" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="80"/><column index="2" value="189"/><column index="3" value="56"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="ExamHall" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="66"/><column index="2" value="86"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="Faculty" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="56"/><column index="2" value="177"/><column index="3" value="106"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1">-- faculty secretary table
+CREATE TABLE FacultySecretary (
+    FacultySecretaryId INTEGER PRIMARY KEY, -- auto-increment by default
+    FacultySecretarySpecialId TEXT UNIQUE,
+    FacultySecretaryName TEXT NOT NULL,
+    FacultySecretaryEmail TEXT NOT NULL UNIQUE,
+    FacultySecretaryPassword TEXT NOT NULL
+);
+
+-- faculty secretary creates student 
+CREATE TABLE Student (
+    StudentId INTEGER PRIMARY KEY,
+    StudentName TEXT NOT NULL,
+    StudentEmail TEXT NOT NULL UNIQUE,
+    StudentPassword TEXT NOT NULL,
+    StudentCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    StudentUpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP, -- no auto-update in SQLite
+    FacultySecretaryId INTEGER,
+    FOREIGN KEY (FacultySecretaryId) REFERENCES FacultySecretary(FacultySecretaryId) ON DELETE CASCADE
+);
+
+-- faculty secretary creates instructor 
+CREATE TABLE Instructor (
+    InstructorId INTEGER PRIMARY KEY,
+    InstructorName TEXT NOT NULL,
+    InstructorEmail TEXT NOT NULL UNIQUE,
+    InstructorPassword TEXT NOT NULL,
+    InstructorCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    InstructorUpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FacultySecretaryId INTEGER,
+    FOREIGN KEY (FacultySecretaryId) REFERENCES FacultySecretary(FacultySecretaryId) ON DELETE CASCADE
+);
+
+-- FacultySecretary belongs to a Faculty
+CREATE TABLE Faculty (
+    FacultyId INTEGER PRIMARY KEY,
+    FacultyName TEXT NOT NULL,
+    FacultySecretaryId INTEGER,
+    FOREIGN KEY (FacultySecretaryId) REFERENCES FacultySecretary(FacultySecretaryId) ON DELETE CASCADE
+);
+
+-- Department belongs to a Faculty
+CREATE TABLE Department (
+    DepartmentId INTEGER PRIMARY KEY,
+    DepartmentName TEXT NOT NULL,
+    FacultyId INTEGER,
+    FOREIGN KEY (FacultyId) REFERENCES Faculty(FacultyId) ON DELETE CASCADE
+);
+
+-- course created by faculty secretary and name, code, instructor, department etc..
+CREATE TABLE Course (
+    CourseId INTEGER PRIMARY KEY,
+    CourseCode TEXT NOT NULL,
+    CourseName TEXT NOT NULL,
+    InstructorId INTEGER,
+    DepartmentId INTEGER,
+    CourseCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CourseUpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FacultySecretaryId INTEGER,
+    FOREIGN KEY (InstructorId) REFERENCES Instructor(InstructorId) ON DELETE CASCADE,
+    FOREIGN KEY (DepartmentId) REFERENCES Department(DepartmentId) ON DELETE CASCADE,
+    FOREIGN KEY (FacultySecretaryId) REFERENCES FacultySecretary(FacultySecretaryId) ON DELETE CASCADE
+);
+
+-- students can enroll in many courses and vice versa, grade is here too.
+CREATE TABLE Enroll (
+    StudentId INTEGER,
+    CourseId INTEGER,
+    EnrollGrade INTEGER NULL,
+    EnrollLetterGrade TEXT NULL,
+    PRIMARY KEY (StudentId, CourseId),
+    FOREIGN KEY (StudentId) REFERENCES Student(StudentId) ON DELETE CASCADE,
+    FOREIGN KEY (CourseId) REFERENCES Course(CourseId) ON DELETE CASCADE
+);
+
+-- can be created by Instructor 
+CREATE TABLE ResitExam (
+    ResitExamId INTEGER PRIMARY KEY,
+    ResitExamName TEXT,
+    CourseId INTEGER,
+    ResitExamDate DATE,
+    ResitExamTime TIME,
+    ResitExamDeadline DATETIME,
+    ResitExamAllowedLetters TEXT, -- letters separated by commas like &quot;AA,AB,BB,BC,CC,FF&quot;
+    ResitExamCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ResitExamUpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ResitExamCreatedBy INTEGER, -- id of Instructor
+    FOREIGN KEY (ResitExamCreatedBy) REFERENCES Instructor(InstructorId) ON DELETE CASCADE
+);
+
+-- enroll doesn't have an id, it's a composite key of (studentId, courseId)
+CREATE TABLE ResitExamApplication (
+    ResitExamApplicationId INTEGER PRIMARY KEY,
+    ResitExamApplicationUpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ResitExamId INTEGER,
+    StudentId INTEGER,
+    CourseId INTEGER,
+    Status TEXT DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Mandatory', 'Approved', 'Rejected')),
+    FOREIGN KEY (StudentId) REFERENCES Student(StudentId) ON DELETE CASCADE,
+    FOREIGN KEY (CourseId) REFERENCES Course(CourseId) ON DELETE CASCADE,
+    FOREIGN KEY (ResitExamId) REFERENCES ResitExam(ResitExamId) ON DELETE CASCADE
+);
+
+-- if the ResitExamApplication status is &quot;Mandatory&quot; or &quot;Approved&quot;, student gets to attend the exam
+CREATE TABLE ResitExamEnroll (
+    ResitExamEnrollId INTEGER PRIMARY KEY,
+    ResitExamApplicationId INTEGER,
+    ResitExamEnrollGrade INTEGER,
+    ResitExamEnrollLetterGrade TEXT,
+    Status TEXT DEFAULT 'Not Attended' CHECK (Status IN ('Attended', 'Not Attended')),
+    FOREIGN KEY (ResitExamApplicationId) REFERENCES ResitExamApplication(ResitExamApplicationId) ON DELETE CASCADE
+);
+
+-- name of the exam hall
+CREATE TABLE ExamHall (
+    ExamHallId INTEGER PRIMARY KEY,
+    ExamHallName TEXT NOT NULL UNIQUE
+);
+
+-- links exam halls and resit exams
+CREATE TABLE AssignedExamHall (
+    AssignedExamHallId INTEGER PRIMARY KEY,
+    ExamHallId INTEGER,
+    ResitExamId INTEGER,
+    FOREIGN KEY (ExamHallId) REFERENCES ExamHall(ExamHallId) ON DELETE CASCADE,
+    FOREIGN KEY (ResitExamId) REFERENCES ResitExam(ResitExamId) ON DELETE CASCADE
+);
+
+-- AI GENERATED DATA TO TEST IT
+
+-- Insert data into FacultySecretary table
+INSERT INTO FacultySecretary (FacultySecretarySpecialId, FacultySecretaryName, FacultySecretaryEmail, FacultySecretaryPassword)
+VALUES
+    ('FS001', 'Alice Johnson', 'alice.johnson@university.com', 'admin123'),
+    ('FS002', 'Bob Smith', 'bob.smith@university.com', 'admin456'),
+    ('FS003', 'Claire Davis', 'claire.davis@university.com', 'admin789'),
+    ('FS004', 'David Lee', 'david.lee@university.com', 'admin101'),
+    ('FS005', 'Eve White', 'eve.white@university.com', 'admin202');
+
+-- Insert data into Faculty table
+INSERT INTO Faculty (FacultyName, FacultySecretaryId)
+VALUES
+    ('Faculty of Computer Science', 1),
+    ('Faculty of Engineering', 2),
+    ('Faculty of Arts', 3),
+    ('Faculty of Business Administration', 4),
+    ('Faculty of Social Sciences', 5);
+
+-- Insert data into Department table
+INSERT INTO Department (DepartmentName, FacultyId)
+VALUES
+    ('Department of Computer Science', 1),
+    ('Department of Electrical Engineering', 2),
+    ('Department of Literature', 3),
+    ('Department of Management', 4),
+    ('Department of Sociology', 5);
+
+-- Insert data into Instructor table
+INSERT INTO Instructor (InstructorName, InstructorEmail, InstructorPassword, FacultySecretaryId)
+VALUES
+    ('Dr. Jane Doe', 'jane.doe@university.com', 'password123', 1),
+    ('Dr. John Roe', 'john.roe@university.com', 'password456', 2),
+    ('Prof. Emma Stone', 'emma.stone@university.com', 'password789', 3),
+    ('Dr. Michael Black', 'michael.black@university.com', 'password101', 4),
+    ('Dr. Linda Green', 'linda.green@university.com', 'password202', 5);
+
+-- Insert data into Course table
+INSERT INTO Course (CourseCode, CourseName, InstructorId, DepartmentId, FacultySecretaryId)
+VALUES
+    ('CS101', 'Introduction to Computer Science', 1, 1, 1),
+    ('EE201', 'Electrical Circuits', 2, 2, 2),
+    ('LIT201', 'Modern Literature', 3, 3, 3),
+    ('BUS301', 'Principles of Management', 4, 4, 4),
+    ('SOC101', 'Introduction to Sociology', 5, 5, 5),
+    ('CS202', 'Data Structures', 1, 1, 1),
+    ('EE301', 'Electromagnetic Fields', 2, 2, 2),
+    ('LIT301', 'Shakespearean Drama', 3, 3, 3),
+    ('BUS303', 'Marketing Management', 4, 4, 4),
+    ('SOC202', 'Social Theories', 5, 5, 5);
+
+-- Insert data into Student table
+INSERT INTO Student (StudentName, StudentEmail, StudentPassword, FacultySecretaryId)
+VALUES
+    ('Michael Taylor', 'michael.taylor@university.com', 'student123', 1),
+    ('Sarah Williams', 'sarah.williams@university.com', 'student456', 2),
+    ('David Brown', 'david.brown@university.com', 'student789', 3),
+    ('Sophia Clark', 'sophia.clark@university.com', 'student101', 4),
+    ('James Davis', 'james.davis@university.com', 'student202', 5),
+    ('Olivia Miller', 'olivia.miller@university.com', 'student303', 1),
+    ('William Jones', 'william.jones@university.com', 'student404', 2),
+    ('Isabella Martinez', 'isabella.martinez@university.com', 'student505', 3),
+    ('Benjamin Garcia', 'benjamin.garcia@university.com', 'student606', 4),
+    ('Charlotte Rodriguez', 'charlotte.rodriguez@university.com', 'student707', 5);
+
+-- Insert data into Enroll table (Students enrolling in courses with letter grades like AA, AB, BB, etc.)
+INSERT INTO Enroll (StudentId, CourseId, EnrollGrade, EnrollLetterGrade)
+VALUES
+    (1, 1, 85, 'BB'),
+    (2, 3, 92, 'AA'),
+    (3, 4, 88, 'AB'),
+    (4, 5, 75, 'BC'),
+    (5, 2, 80, 'BB'),
+    (6, 6, 90, 'AA'),
+    (7, 7, 78, 'BC'),
+    (8, 8, 88, 'AB'),
+    (9, 9, 82, 'BB'),
+    (10, 10, 95, 'AA');
+
+-- Insert data into ResitExam table 
+INSERT INTO ResitExam (ResitExamName, CourseId, ResitExamDate, ResitExamTime, ResitExamDeadline, ResitExamAllowedLetters, ResitExamCreatedBy)
+VALUES
+    ('CS101 Resit Exam', 1, '2025-06-01', '09:00:00', '2025-05-25 23:59:59', 'AA,AB,BB,BC,CC,FF', 1),  -- InstructorId for Dr. Jane Doe
+    ('LIT201 Resit Exam', 3, '2025-06-02', '10:00:00', '2025-05-26 23:59:59', 'AA,AB,BB,BC,CC,FF', 2),  -- InstructorId for Dr. John Roe
+    ('BUS301 Resit Exam', 4, '2025-06-03', '11:00:00', '2025-05-27 23:59:59', 'AA,AB,BB,BC,CC,FF', 3),  -- InstructorId for Prof. Emma Stone
+    ('SOC101 Resit Exam', 5, '2025-06-04', '12:00:00', '2025-05-28 23:59:59', 'AA,AB,BB,BC,CC,FF', 4),  -- InstructorId for Dr. Michael Black
+    ('EE201 Resit Exam', 2, '2025-06-05', '14:00:00', '2025-05-29 23:59:59', 'AA,AB,BB,BC,CC,FF', 5);  -- InstructorId for Dr. Linda Green
+
+-- Insert data into ResitExamApplication table
+INSERT INTO ResitExamApplication (ResitExamId, StudentId, CourseId, Status)
+VALUES
+    (1, 1, 1, 'Pending'),
+    (2, 2, 3, 'Approved'),
+    (3, 3, 4, 'Mandatory'),
+    (4, 4, 5, 'Pending'),
+    (5, 5, 2, 'Approved'),
+    (1, 6, 1, 'Approved'),
+    (2, 7, 3, 'Pending'),
+    (3, 8, 4, 'Mandatory'),
+    (4, 9, 5, 'Approved'),
+    (5, 10, 2, 'Pending');
+
+-- Insert data into ResitExamEnroll table
+INSERT INTO ResitExamEnroll (ResitExamApplicationId, ResitExamEnrollGrade, ResitExamEnrollLetterGrade, Status)
+VALUES
+    (1, NULL, NULL, 'Not Attended'),
+    (2, 95, 'AA', 'Attended'),
+    (3, 80, 'BB', 'Attended'),
+    (4, NULL, NULL, 'Not Attended'),
+    (5, 88, 'AB', 'Attended'),
+    (6, NULL, NULL, 'Not Attended'),
+    (7, NULL, NULL, 'Not Attended'),
+    (8, 90, 'AA', 'Attended'),
+    (9, 85, 'BB', 'Attended'),
+    (10, NULL, NULL, 'Not Attended');
+
+-- Insert data into ExamHall table
+INSERT INTO ExamHall (ExamHallName)
+VALUES
+    ('Main Hall'),
+    ('East Wing'),
+    ('West Wing'),
+    ('South Wing'),
+    ('North Wing');
+
+-- Insert data into AssignedExamHall table
+INSERT INTO AssignedExamHall (ExamHallId, ResitExamId)
+VALUES
+    (1, 1),
+    (2, 2),
+    (3, 3),
+    (4, 4),
+    (5, 5);
+
+	
+
+	
+-- TRIGGERS 
+
+    -- UPDATED AT TRIGGERS
+
+-- update trigger for Student table
+CREATE TRIGGER UpdateStudentUpdatedAt
+AFTER UPDATE ON Student
+FOR EACH ROW
+BEGIN
+    UPDATE Student
+    SET StudentUpdatedAt = CURRENT_TIMESTAMP
+    WHERE StudentId = OLD.StudentId;
+END;
+
+-- update trigger for Instructor table
+CREATE TRIGGER UpdateInstructorUpdatedAt
+AFTER UPDATE ON Instructor
+FOR EACH ROW
+BEGIN
+    UPDATE Instructor
+    SET InstructorUpdatedAt = CURRENT_TIMESTAMP
+    WHERE InstructorId = OLD.InstructorId;
+END;
+
+-- update trigger ffor Course table
+CREATE TRIGGER UpdateCourseUpdatedAt
+AFTER UPDATE ON Course
+FOR EACH ROW
+BEGIN
+    UPDATE Course
+    SET CourseUpdatedAt = CURRENT_TIMESTAMP
+    WHERE CourseId = OLD.CourseId;
+END;
+
+-- update trigger for ResitExam table
+CREATE TRIGGER UpdateResitExamUpdatedAt
+AFTER UPDATE ON ResitExam
+FOR EACH ROW
+BEGIN
+    UPDATE ResitExam
+    SET ResitExamUpdatedAt = CURRENT_TIMESTAMP
+    WHERE ResitExamId = OLD.ResitExamId;
+END;
+
+-- update trigger f ResitExamApplication table
+CREATE TRIGGER UpdateResitExamApplicationUpdatedAt
+AFTER UPDATE ON ResitExamApplication
+FOR EACH ROW
+BEGIN
+    UPDATE ResitExamApplication
+    SET ResitExamApplicationUpdatedAt = CURRENT_TIMESTAMP
+    WHERE ResitExamApplicationId = OLD.ResitExamApplicationId;
+END;
+
+    -- AUTO ASSIGN LETTER GRADE TRIGGERS
+
+-- Trigger for Enroll table (INSERT)
+CREATE TRIGGER SetEnrollLetterGradeInsert
+AFTER INSERT ON Enroll
+FOR EACH ROW
+WHEN NEW.EnrollGrade IS NOT NULL
+BEGIN
+    UPDATE Enroll
+    SET EnrollLetterGrade = 
+        CASE 
+            WHEN NEW.EnrollGrade &gt;= 90 THEN 'AA'
+            WHEN NEW.EnrollGrade &gt;= 85 THEN 'AB'
+            WHEN NEW.EnrollGrade &gt;= 80 THEN 'BB'
+            WHEN NEW.EnrollGrade &gt;= 75 THEN 'BC'
+            WHEN NEW.EnrollGrade &gt;= 70 THEN 'CC'
+            WHEN NEW.EnrollGrade &gt;= 60 THEN 'DC'
+            WHEN NEW.EnrollGrade &gt;= 50 THEN 'DD'
+            WHEN NEW.EnrollGrade &gt;= 40 THEN 'FD'
+            ELSE 'FF'
+        END
+    WHERE StudentId = NEW.StudentId AND CourseId = NEW.CourseId;
+END;
+
+-- Trigger for Enroll table (UPDATE)
+CREATE TRIGGER SetEnrollLetterGradeUpdate
+AFTER UPDATE OF EnrollGrade ON Enroll
+FOR EACH ROW
+WHEN NEW.EnrollGrade IS NOT NULL
+BEGIN
+    UPDATE Enroll
+    SET EnrollLetterGrade = 
+        CASE 
+            WHEN NEW.EnrollGrade &gt;= 90 THEN 'AA'
+            WHEN NEW.EnrollGrade &gt;= 85 THEN 'AB'
+            WHEN NEW.EnrollGrade &gt;= 80 THEN 'BB'
+            WHEN NEW.EnrollGrade &gt;= 75 THEN 'BC'
+            WHEN NEW.EnrollGrade &gt;= 70 THEN 'CC'
+            WHEN NEW.EnrollGrade &gt;= 60 THEN 'DC'
+            WHEN NEW.EnrollGrade &gt;= 50 THEN 'DD'
+            WHEN NEW.EnrollGrade &gt;= 40 THEN 'FD'
+            ELSE 'FF'
+        END
+    WHERE StudentId = NEW.StudentId AND CourseId = NEW.CourseId;
+END;
+
+-- Trigger for ResitExamEnroll table (INSERT)
+CREATE TRIGGER SetResitExamEnrollLetterGradeInsert
+AFTER INSERT ON ResitExamEnroll
+FOR EACH ROW
+WHEN NEW.ResitExamEnrollGrade IS NOT NULL
+BEGIN
+    UPDATE ResitExamEnroll
+    SET ResitExamEnrollLetterGrade = 
+        CASE 
+            WHEN NEW.ResitExamEnrollGrade &gt;= 90 THEN 'AA'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 85 THEN 'AB'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 80 THEN 'BB'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 75 THEN 'BC'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 70 THEN 'CC'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 60 THEN 'DC'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 50 THEN 'DD'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 40 THEN 'FD'
+            ELSE 'FF'
+        END
+    WHERE ResitExamEnrollId = NEW.ResitExamEnrollId;
+END;
+
+-- Trigger for ResitExamEnroll table (UPDATE)
+CREATE TRIGGER SetResitExamEnrollLetterGradeUpdate
+AFTER UPDATE OF ResitExamEnrollGrade ON ResitExamEnroll
+FOR EACH ROW
+WHEN NEW.ResitExamEnrollGrade IS NOT NULL
+BEGIN
+    UPDATE ResitExamEnroll
+    SET ResitExamEnrollLetterGrade = 
+        CASE 
+            WHEN NEW.ResitExamEnrollGrade &gt;= 90 THEN 'AA'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 85 THEN 'AB'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 80 THEN 'BB'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 75 THEN 'BC'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 70 THEN 'CC'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 60 THEN 'DC'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 50 THEN 'DD'
+            WHEN NEW.ResitExamEnrollGrade &gt;= 40 THEN 'FD'
+            ELSE 'FF'
+        END
+    WHERE ResitExamEnrollId = NEW.ResitExamEnrollId;
+END;
+
+-- triggers for auto apply to resit exam if the grade letter is ff or fd
+-- Insert Enroll FD or FF
+CREATE TRIGGER AutoApplyResitAfterEnrollInsert
+AFTER INSERT ON Enroll
+FOR EACH ROW
+WHEN NEW.EnrollGrade IS NOT NULL AND 
+    (
+        (NEW.EnrollGrade &gt;= 40 AND NEW.EnrollGrade &lt; 50) OR 
+        (NEW.EnrollGrade &lt; 40)
+    )
+BEGIN
+    -- Insert application if it doesn’t already exist
+    INSERT INTO ResitExamApplication (ResitExamId, StudentId, CourseId, Status)
+    SELECT ResitExamId, NEW.StudentId, NEW.CourseId, 'Mandatory'
+    FROM ResitExam
+    WHERE CourseId = NEW.CourseId
+    AND NOT EXISTS (
+        SELECT 1
+        FROM ResitExamApplication A
+        WHERE A.StudentId = NEW.StudentId 
+          AND A.CourseId = NEW.CourseId
+    )
+    ORDER BY ResitExamDeadline DESC
+    LIMIT 1;
+
+    -- Insert enroll if application exists and no enroll record yet
+    INSERT INTO ResitExamEnroll (ResitExamApplicationId, Status)
+    SELECT ResitExamApplicationId, 'Not Attended'
+    FROM ResitExamApplication
+    WHERE StudentId = NEW.StudentId
+      AND CourseId = NEW.CourseId
+      AND Status = 'Mandatory'
+    AND NOT EXISTS (
+        SELECT 1 FROM ResitExamEnroll
+        WHERE ResitExamApplicationId = ResitExamApplication.ResitExamApplicationId
+    )
+    ORDER BY ResitExamApplicationId DESC
+    LIMIT 1;
+END;
+
+-- Update enroll FD or FF
+CREATE TRIGGER AutoApplyResitAfterEnrollUpdate
+AFTER UPDATE OF EnrollGrade ON Enroll
+FOR EACH ROW
+WHEN NEW.EnrollGrade IS NOT NULL AND 
+    (
+        (NEW.EnrollGrade &gt;= 40 AND NEW.EnrollGrade &lt; 50) OR 
+        (NEW.EnrollGrade &lt; 40)
+    )
+BEGIN
+    -- Insert application if it doesn’t already exist
+    INSERT INTO ResitExamApplication (ResitExamId, StudentId, CourseId, Status)
+    SELECT ResitExamId, NEW.StudentId, NEW.CourseId, 'Mandatory'
+    FROM ResitExam
+    WHERE CourseId = NEW.CourseId
+    AND NOT EXISTS (
+        SELECT 1
+        FROM ResitExamApplication A
+        WHERE A.StudentId = NEW.StudentId 
+          AND A.CourseId = NEW.CourseId
+    )
+    ORDER BY ResitExamDeadline DESC
+    LIMIT 1;
+
+    -- Insert enroll if application exists and no enroll record yet
+    INSERT INTO ResitExamEnroll (ResitExamApplicationId, Status)
+    SELECT ResitExamApplicationId, 'Not Attended'
+    FROM ResitExamApplication
+    WHERE StudentId = NEW.StudentId
+      AND CourseId = NEW.CourseId
+      AND Status = 'Mandatory'
+    AND NOT EXISTS (
+        SELECT 1 FROM ResitExamEnroll
+        WHERE ResitExamApplicationId = ResitExamApplication.ResitExamApplicationId
+    )
+    ORDER BY ResitExamApplicationId DESC
+    LIMIT 1;
+END;
+
+
+-- when ResitExamApplication is accepted, add Student to ResitExamEnroll
+-- insert
+CREATE TRIGGER AutoEnrollAfterApplicationInsert
+AFTER INSERT ON ResitExamApplication
+FOR EACH ROW
+WHEN NEW.Status IN ('Approved', 'Mandatory')
+BEGIN
+    INSERT INTO ResitExamEnroll (ResitExamApplicationId, Status)
+    VALUES (NEW.ResitExamApplicationId, 'Not Attended');
+END;
+
+-- update
+CREATE TRIGGER AutoEnrollAfterApplicationUpdate
+AFTER UPDATE OF Status ON ResitExamApplication
+FOR EACH ROW
+WHEN NEW.Status IN ('Approved', 'Mandatory')
+     AND NOT EXISTS (
+         SELECT 1 FROM ResitExamEnroll
+         WHERE ResitExamApplicationId = NEW.ResitExamApplicationId
+     )
+BEGIN
+    INSERT INTO ResitExamEnroll (ResitExamApplicationId, Status)
+    VALUES (NEW.ResitExamApplicationId, 'Not Attended');
+END;
+
+--when removed from the ResitExamEnroll reject the application from ResitExamApplication
+CREATE TRIGGER RejectApplicationOnEnrollDelete
+AFTER DELETE ON ResitExamEnroll
+FOR EACH ROW
+BEGIN
+    UPDATE ResitExamApplication
+    SET Status = 'Rejected'
+    WHERE ResitExamApplicationId = OLD.ResitExamApplicationId;
+END;
+
+
+INSERT INTO Student (StudentName, StudentEmail, StudentPassword, FacultySecretaryId) VALUES (&quot;test&quot;,&quot;test&quot;,&quot;test&quot;, 1);
+SELECT * FROM Student;
+INSERT INTO Enroll (StudentId, CourseId,EnrollGrade) VALUES (11,1, 32);</sql><current_tab id="0"/></tab_sql></sqlb_project>
