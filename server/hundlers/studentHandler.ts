@@ -1,6 +1,6 @@
 import { Request, Response, RequestHandler } from 'express';
 import { db } from '../datastore';
-import { Student } from '../types';
+import { Student, StudentCourseDetails } from '../types';
 
 
 
@@ -50,7 +50,7 @@ export const createAstudent : RequestHandler= ((req: Request, res: Response) : a
   }
   
   // check if the student id is already in the database
-  const existingStudent = db.getStudentById(id);
+  const existingStudent = db.getAstudent(id);
   if (existingStudent) {
     return res.status(400).json({
       success: false,
@@ -81,7 +81,7 @@ export const createAstudent : RequestHandler= ((req: Request, res: Response) : a
     db.createStudent(newStudent);
 
     // Verify the student was created by retrieving it
-    const createdStudent = db.getStudentById(id);
+    const createdStudent = db.getAstudent(id);
     if (!createdStudent) {
       throw new Error('Failed to verify student creation');
     }
@@ -111,7 +111,7 @@ export const createAstudent : RequestHandler= ((req: Request, res: Response) : a
 // get a student by id
 export const getAstudent: RequestHandler<{ id: string }> = (req, res) => {
   const id = req.params.id;
-  const student = db.getStudentById(id);
+  const student = db.getAstudent(id);
 
   if (student) {
     res.status(200).json(student);
@@ -131,7 +131,7 @@ export const deleteStudent: RequestHandler<{ id: string, secretaryId: string }> 
     throw new Error("Unauthorized Secretary");
   }
   // Check if the student Id exists
-  const student = db.getStudentById(id);
+  const student = db.getAstudent(id);
   if (!student) {
     throw new Error("Student not found");
   }
@@ -155,7 +155,7 @@ export const updateStudentInfo: RequestHandler<{ id: string, secretaryId: string
   if (db.getSecretaryById(secretary) === undefined) {
     throw new Error("Unauthorized Secretary ID");
   }
-  if( db.getStudentById(id) === undefined) {
+  if( db.getAstudent(id) === undefined) {
     throw new Error("Student not found"); 
   }
 
@@ -179,12 +179,18 @@ export const updateStudentInfo: RequestHandler<{ id: string, secretaryId: string
 
 // add a course to a student
 export const addCourseToStudent: RequestHandler = (req, res): any => {
-  const { id, secId ,courseId, departement , secretaryId } = req.body;
+  const { id } = req.params;
+  const {courseId, departement , secretaryId , grade , gradeLetter} = req.body;
   
   //! departement is optional
-  if (!id || !secId || !courseId || !secretaryId) {
+  if (!id || !courseId || !secretaryId) {
     res.status(400).send('Missing required fields: id, secretaryId, courseId');
     return;
+  }
+  
+  // check if the courseId is correct
+  if (db.getCourseById(courseId) === undefined) {
+    throw new Error("Invalid Course ID or not found");
   }
 
   // Check if the secretary is authorized
@@ -192,12 +198,12 @@ export const addCourseToStudent: RequestHandler = (req, res): any => {
     throw new Error("Unauthorized Secretary ID");
   }
   // Check if the student Id is extists
-  if (db.getStudentById(id) === undefined) {
+  if (db.getAstudent(id) === undefined) {
     throw new Error("Student not found");
   }
-  // const sId = db.getStudentById(studentId);
-  const student = db.getStudentById(id);
-  const sec = db.getSecretaryById(secId);
+  // const sId = db.getAstudent(studentId);
+  const student = db.getAstudent(id);
+  const sec = db.getSecretaryById(secretaryId);
 
 
   //? department and course still not finished
@@ -220,7 +226,7 @@ export const addCourseToStudent: RequestHandler = (req, res): any => {
     }
     
     // Add the course to the student's courses
-    const status = db.addCourseToStudent(id, courseId);
+    const status = db.addCourseToStudent(id, courseId , grade , gradeLetter);
     if (status) {
       return res.status(200).send('Course added to student successfully');
     } else {
@@ -238,7 +244,7 @@ export const addRistExamToStudent: RequestHandler<{ id: string}> = (req, res) : 
   const { id } = req.params;
   const { resitExamId } = req.body;
 
-  const student = db.getStudentById(id);
+  const student = db.getAstudent(id);
   // check if the studentId is correct
   if (!student) {
     throw new Error("Invalid Student ID");
@@ -249,24 +255,10 @@ export const addRistExamToStudent: RequestHandler<{ id: string}> = (req, res) : 
     
   }
   //? check if the ResitExam Id is correct | not implemented
-  // if (db.getResitExam(studentId, resitExamId) === undefined) {
-  //   throw new Error("Resit exam not found");
-  // }
-  // check if the instructorId is correct | not implemented
-  // if (db.getInstructorById(instructorId) === undefined ) {
-  //   throw new Error("Instructor not found");
-  // }
-  
-  
-  // // check if the examDate is correct
-  // const resitExam = db.getResitExam(studentId, resitExamId);
-  // if (resitExam && examDate != resitExam.examDate) {
-  //   throw new Error("invalid exam date");
-  // }
-  // check if the deadline is correct
-  // if (deadline < new Date()) {
-  //   throw new Error("Deadline is in the past");
-  // }
+  if (db.getResitExam(resitExamId) === undefined) {
+    throw new Error("Invalid Resit Exam ID or not found");
+  }
+
   try {
     const status = db.addRistExamToStudent(id, resitExamId);
     if (status === true) {
@@ -294,24 +286,24 @@ export const removeStudentFromCourse: RequestHandler<{ id: string }> = (req, res
     return res.status(400).send('Missing required fields: secretaryId, courseId');
   }
 
-  const student = db.getStudentById(id);
+  const student = db.getAstudent(id);
   const sec = db.getSecretaryById(secretaryId);
-  // const course = db.getCourseById(courseId);
+  const course = db.getCourseById(courseId);
 
   // Check if the secretary Id is extists and authorized
-  if (db.getSecretaryById(secretaryId) === undefined) {
+  if (!sec) {
     throw new Error("Unauthorized Secretary ID");
   }
   // Check if the course Id is extists | not implemented
-  // if (db.getCourseById(courseId) === undefined) {
-  //   throw new Error("Invalid Course ID");
-  // } 
+  if (!course) {
+    throw new Error("Invalid Course ID");
+  } 
   // Check if the student Id is extists
   if (!student) {
     throw new Error("Invalid Student ID");
   }
   // Check if the student is enrolled in the course
-  if (!db.getStudentById(id)?.courses.includes(courseId)) {
+  if (!db.getAstudent(id)?.courses.includes(courseId)) {
     throw new Error("Student not enrolled in the course");
   }
 
@@ -334,21 +326,32 @@ export const removeStudentFromCourse: RequestHandler<{ id: string }> = (req, res
 };
 
 // remove a student from a resit exam
-export const removeStudentFromResitExam: RequestHandler<{ id: string, resitExamId: string }> = (req, res) : any => {
-  const { id, resitExamId } = req.params;
+export const removeStudentFromResitExam: RequestHandler<{ id: string}> = (req, res) : any => {
+  const { id } = req.params;
+  const { resitExamId } = req.body;
+  console.log("------------------------111");
   console.log(id, resitExamId);
+
   // Check if the ResitExam Id is extists | not implemented
-  // if (db.getResitExam(id, resitExamId) === undefined) {
-  //   throw new Error("Invalid Resit Exam ID or not found");
-  // }
+  if (db.getResitExam(resitExamId) == undefined) {
+    throw new Error("Invalid Resit Exam ID or not found");
+  }
   // Check if the student Id is extists
-  if (db.getStudentById(id) === undefined) {
+  if (db.getAstudent(id) == undefined) {
     throw new Error("Invalid Student ID");
+  }
+  // Check if the student is enrolled in the resit exam
+  if(!db.getAstudent(id)?.resitExams.includes(resitExamId)) {
+    throw new Error("Student not enrolled in the resit exam");
   }
 
   try {
-    db.removeStudentFromResitExamFrom(id, resitExamId);
-    res.status(200).send('Student removed from resit exam successfully');
+    const status = db.removeStudentFromResitExam(id, resitExamId);
+    if (status) {
+      res.status(200).send('Student removed from resit exam successfully');
+    } else {
+      res.status(400).send('Error removing student from resit exam');
+    }
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === 'Resit exam not found') {
@@ -365,9 +368,16 @@ export const removeStudentFromResitExam: RequestHandler<{ id: string, resitExamI
 };
 
 // get student's resit exams by id
-export const getStudentResitExams: RequestHandler<{ id: string }> = (req, res) => {
+// this from the student's dashboard
+// /student/resitexams/
+export const getStudentResitExams: RequestHandler<{ id: string }> = (req, res) : any => {
   const id = req.params.id;
+  const student = db.getAstudent(id);
   const resitExams = db.getStudentResitExams(id);
+
+  if (!student) {
+    return res.status(404).json({ error: "Student not found" });
+  }
 
   if (resitExams) {
     res.status(200).json({resitExams});
@@ -377,14 +387,37 @@ export const getStudentResitExams: RequestHandler<{ id: string }> = (req, res) =
 };
 
 // get student's courses by id
-export const getStudentCourses: RequestHandler<{ id: string }> = (req, res) => {
+// this from the student's dashboard
+// /student/courses/
+export const getStudentCourses: RequestHandler<{ id: string }> = (req, res) : any => {
   const id = req.params.id;
   const courses = db.getStudentCourses(id);
+  const student = db.getAstudent(id);
+
+  if (!student) {
+    return res.status(404).json({ error: "Student not found" });
+  }
 
   if (courses) {
     res.status(200).json({courses});
   } else {
     res.status(404).send('Student not found or no courses found');
+  }
+};
+
+export const getStudentCourseDetails: RequestHandler<{ id: string }> = (req, res) : any => {
+  try {
+    const { id } = req.params;
+    const courseDetails = db.getStudentCourseDetails(id);
+    
+    if (!courseDetails) {
+      return res.status(404).json({ message: 'Student not found or has no courses' });
+    }
+    
+    return res.status(200).json(courseDetails);
+  } catch (error) {
+    console.error('Error getting student course details:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 

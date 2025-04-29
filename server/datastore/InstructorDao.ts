@@ -1,4 +1,4 @@
-import { Instructor, ResitExam, Secretary } from '../types';
+import { Instructor, ResitExam, Secretary, InstructorCourseDetails } from '../types';
 
 export interface InstructorDao {
   createInstructor(instructor: Instructor): void;
@@ -7,7 +7,7 @@ export interface InstructorDao {
   deleteInstructor(id: string, secretaryID: string): void;
   updateInstructor(id: string, name: string, email: string, password: string , secretaryID: string): void;
   
-  getInsturctorCoursesById (id: string): string[] | undefined;
-  getInstructorResitExamsById(id: string, resitExamId: string): string[];
-
+  getInsturctorCourses(id: string): string[] | undefined;
+  getInstructorResitExams(id: string): string[] | undefined;
+  getInstructorCourseDetails(id: string): InstructorCourseDetails[] | undefined;
 }

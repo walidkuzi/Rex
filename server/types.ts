@@ -20,6 +20,13 @@ export interface Secretary extends User {
   // instructorId: string;
 }
 
+export interface InstructorCourseDetails {
+  courseId: string;
+  courseName: string;
+  department: string;
+  students: string[];
+}
+
 export interface Instructor extends User {
   courses: string[]; // must be added not created | added from Course students
   resitExams: string[]; // must be added not created | added from ResitExam students
@@ -53,8 +60,8 @@ export interface Course {
 export interface ResitExam {
   id: string;
   name: string;
-  department: string | undefined;
-  instructor: string ; // must select an instructor
+  department: string;
+  instructors: string[];  // Changed from instructor: string to instructors: string[]
   lettersAllowed: string[];
   examDate: Date;
   deadline: Date;
@@ -65,6 +72,22 @@ export interface ResitExam {
   updatedAt: Date | null;
 }
 
+
+
+
+export interface StudentCourseGrade {
+  studentId: string;
+  courseId: string;
+  grade: number;
+  gradeLetter: string;
+}
+
+export interface StudentCourseDetails {
+  courseId: string;
+  courseName: string;
+  grade?: number;
+  gradeLetter?: string;
+}
 
 export type MyExpressHandler<Req, Res> = RequestHandler<string, Partial<Res>, Partial<Req>, any>;
 

@@ -1,6 +1,6 @@
 import { Request, Response, RequestHandler } from 'express';
 import { db } from '../datastore';
-import { Instructor } from '../types';
+import { Instructor, InstructorCourseDetails } from '../types';
 
 
 
@@ -13,13 +13,13 @@ export const createInstructor: RequestHandler = (req, res) : any => {
     return res.status(400).json({
       success: false,
       error: 'Missing required fields',
-      // missingFields: {
-      //   id: !id,
-      //   name: !name,
-      //   email: !email,
-      //   password: !password,
-      //   secretaryId: !secretaryId
-      // }
+      missingFields: {
+        id: !id,
+        name: !name,
+        email: !email,
+        password: !password,
+        secretaryId: !secretaryId
+      }
     });
   }
 
@@ -55,15 +55,15 @@ export const createInstructor: RequestHandler = (req, res) : any => {
     return res.status(400).json({
       success: false,
       error: 'Instructor ID already exists',
-      // existingInstructor: {
-      //   id: instructor.id,
-      //   name: instructor.name,
-      //   email: instructor.email
-      // }
+      existingInstructor: {
+        id: instructor.id,
+        name: instructor.name,
+        email: instructor.email
+      }
     });
   }
 
-  // create the instructor object in the database
+  // Creating the instructor object to be added to the database
   const newInstructor: Instructor = {
     id: id,
     name: name,
@@ -107,10 +107,10 @@ export const createInstructor: RequestHandler = (req, res) : any => {
   }
 };
 
+
 // get an instructor by id
 export const getInstructor: RequestHandler<{ id: string }> = (req, res) : any => {
   const instructor = db.getInstructorById(req.params.id);
-  console.log(instructor);
 
   if (!instructor) {
     return res.status(404).json({ error: "Instructor not found" });
@@ -145,13 +145,15 @@ export const deleteInstructor: RequestHandler<{ id: string}> = (req, res) => {
   res.status(200).json({ message: 'Instructor deleted successfully' });
 };
 
-export const updateInstructorInfo: RequestHandler<{ id: string, secretaryId: string }> = (req, res) => {
-  const { id, secretaryId } = req.params;
-  const { name, email, password } = req.body;
+
+// update instructor information
+export const updateInstructorInfo: RequestHandler<{ id: string }> = (req, res) => {
+  const { id } = req.params;
+  const { name, email, password, secretaryId } = req.body;
 
   // check if the secretary Id is extists and authorized
   if (db.getSecretaryById(secretaryId) === undefined) {
-    throw new Error("Unauthorized");
+    throw new Error("Unauthorized Secretary ID");
   }
   // check if the instructor Id is correct
   if (db.getInstructorById(id) === undefined) {
@@ -177,17 +179,19 @@ export const updateInstructorInfo: RequestHandler<{ id: string, secretaryId: str
 
 
 
-// assign instructor to a course
+// assigning instructor to a course
 export const assignInstructorToCourse: RequestHandler = (req, res) : any => {
-  const { instructorId, courseId, secretaryId } = req.body;
+  const { id } = req.params;
+  const { courseId, secretaryId } = req.body;
 
+  console.log(id);
   // Validate required fields early
-  if (!instructorId || !courseId || !secretaryId) {
+  if (!id || !courseId || !secretaryId) {
     return res.status(400).json({
       success: false,
       error: 'Missing required fields',
       missingFields: {
-        instructorId: !instructorId,
+        id: !id,
         courseId: !courseId,
         secretaryId: !secretaryId
       }
@@ -196,7 +200,7 @@ export const assignInstructorToCourse: RequestHandler = (req, res) : any => {
 
   try {
     // Get all required entities with trimmed IDs
-    const instructor = db.getInstructorById(instructorId.trim());
+    const instructor = db.getInstructorById(id.trim());
     const secretary = db.getSecretaryById(secretaryId.trim());
     const course = db.getCourseById(courseId.trim());
 
@@ -212,11 +216,11 @@ export const assignInstructorToCourse: RequestHandler = (req, res) : any => {
       return res.status(404).json({
         success: false,
         error: 'Instructor not found',
-        instructorId: instructorId
+        id: id
       });
     }
 
-    if (!course) {
+    if (!course) {  
       return res.status(404).json({
         success: false,
         error: 'Course not found',
@@ -239,7 +243,7 @@ export const assignInstructorToCourse: RequestHandler = (req, res) : any => {
     }
 
     // Assign instructor to course
-    const status = db.assignInstructorToCourse(instructorId, courseId);
+    const status = db.assignInstructorToCourse(id, courseId);
     if (status) {
       // Get updated course data
       const updatedCourse = db.getCourseById(courseId);
@@ -274,12 +278,13 @@ export const assignInstructorToCourse: RequestHandler = (req, res) : any => {
   }
 };
 
-// unassign instructor from course
+// unassigning instructor from course
 export const unassignInstructorFromCourse: RequestHandler = (req, res) : any => {
+  const { id } = req.params;
   const { courseId, secretaryId } = req.body;
 
   // Validate required fields early
-  if (!courseId || !secretaryId) {
+  if (!courseId || !secretaryId || !id) {
     return res.status(400).json({
       success: false,
       error: 'Missing required fields',
@@ -292,8 +297,18 @@ export const unassignInstructorFromCourse: RequestHandler = (req, res) : any => 
 
   try {
     // Get all required entities with trimmed IDs
+    const instructor = db.getInstructorById(id.trim());
     const secretary = db.getSecretaryById(secretaryId.trim());
     const course = db.getCourseById(courseId.trim());
+
+    // checking the instructor id 
+    if (!instructor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instructor not found',
+        id: id
+      });
+    }
 
     // Validate entities exist
     if (!secretary) {
@@ -321,7 +336,7 @@ export const unassignInstructorFromCourse: RequestHandler = (req, res) : any => 
     }
 
     // Unassign instructor from course
-    const status = db.unassignInstructorFromCourse(courseId);
+    const status = db.unassignInstructorFromCourse(courseId, id);
     if (status) {
       // Get updated course data
       const updatedCourse = db.getCourseById(courseId);
@@ -375,7 +390,7 @@ export const addResitExamToInstructor: RequestHandler<{ id: string }> = (req, re
     // Get all required entities
     const instructor = db.getInstructorById(id);
     const secretary = db.getSecretaryById(secretaryId);
-    const resitExam = db.getResitExam(resitExamId, id);
+    const resitExam = db.getResitExam(resitExamId);
 
     // Validate all entities exist
     if (!secretary) {
@@ -389,7 +404,7 @@ export const addResitExamToInstructor: RequestHandler<{ id: string }> = (req, re
       return res.status(404).json({
         success: false,
         error: 'Instructor not found',
-        instructorId: id
+        id: id
       });
     }
 
@@ -406,7 +421,7 @@ export const addResitExamToInstructor: RequestHandler<{ id: string }> = (req, re
       return res.status(400).json({
         success: false,
         error: "Resit exam already in instructor's resit exams",
-        instructorId: id,
+        id: id,
         resitExamId: resitExamId
       });
     }
@@ -516,7 +531,7 @@ export const unEnrollInstructorFromRExam: RequestHandler<{ id: string, resitExam
 
   const instructor = db.getInstructorById(id);
   const secretary = db.getSecretaryById(secretaryId);
-  const resitExam = db.getResitExam(id, resitExamId);
+  const resitExam = db.getResitExam(resitExamId);
 
   try {
     // Check if the instructor exists
@@ -558,11 +573,17 @@ export const unEnrollInstructorFromRExam: RequestHandler<{ id: string, resitExam
 };
 
 
-// get instructor's courses
-export const getInstructorCourses: RequestHandler<{ id: string }> = (req, res) => {
+// get instructor's course or courses
+// this from the instructor's dashboard
+// /instructor/courses/:id
+export const getInstructorCourses: RequestHandler<{ id: string }> = (req, res) : any => {
   const { id } = req.params;
   const instructor = db.getInstructorById(id);
-  const courses = db.getInsturctorCoursesById(id);
+  const courses = db.getInsturctorCourses(id);
+
+  if (!instructor) {
+    return res.status(404).json({ error: "Instructor not found" });
+  }
 
   if (courses) {
     res.status(200).json({ courses });
@@ -573,15 +594,36 @@ export const getInstructorCourses: RequestHandler<{ id: string }> = (req, res) =
 
 
 // get instructor's resit exams
-export const getInstructorResitExams: RequestHandler<{ id: string }> = (req, res) => {
+export const getInstructorResitExams: RequestHandler<{ id: string }> = (req, res) : any => {
   const { id } = req.params;
   const instructor = db.getInstructorById(id);
-  const resitExams = db.getInstructorResitExamsById(id, id);
+  const resitExams = db.getInstructorResitExams(id);
+  
+  if (!instructor) {
+    return res.status(404).json({ error: "Instructor not found" });
+  }
 
   if (resitExams) {
     res.status(200).json({ resitExams });
   } else {
     res.status(404).send('Instructor not found or no resit exams found');
+  }
+};
+
+export const getInstructorCourseDetails = (req: Request, res: Response) : any => {
+  
+  try {
+    const { id } = req.params;
+    const courseDetails = db.getInstructorCourseDetails(id);
+    
+    if (!courseDetails) {
+      return res.status(404).json({ message: 'Instructor not found or has no courses' });
+    }
+    
+    return res.status(200).json(courseDetails);
+  } catch (error) {
+    console.error('Error getting instructor course details:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 

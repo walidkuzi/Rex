@@ -1,5 +1,5 @@
 import { datastore } from "..";
-import { Course, Secretary, ResitExam, Instructor, Student } from "../../types";
+import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, StudentCourseDetails, InstructorCourseDetails } from "../../types";
 
 export class inMemoryDatastore implements datastore {
 
@@ -27,8 +27,8 @@ export class inMemoryDatastore implements datastore {
     name: "Yusuf A",
     email: "Yusuf@example.com",
     password: "password123",
-    courses: ["course-101", "course-102"],
-    resitExams: ["resit-001"],
+    courses: ["course-101"],
+    resitExams: [],
     createdAt: new Date(),
     createdBy: "admin123",
     updatedAt: new Date()
@@ -38,7 +38,7 @@ export class inMemoryDatastore implements datastore {
     name: "Ali Muhmmad",
     email: "ali@example.com",
     password: "pass123",
-    courses: ["course-201", "course-102"],
+    courses: ["course-101"],
     resitExams: ["resit-001"],
     createdAt: new Date(),
     createdBy: "admin14",
@@ -54,7 +54,7 @@ export class inMemoryDatastore implements datastore {
       name: "Mohamed Saleh",
       email: "mohamed.saleh@example.com",
       password: "password123",
-      courses: ["course-101", "course-102"],
+      courses: ["course-101"],
       resitExams: ["resit-001"],
       createdAt: new Date(),
       createdBy: "sec-001",
@@ -67,7 +67,7 @@ export class inMemoryDatastore implements datastore {
     id: "resit-001",
     name: "Resit Exam 1",
     department: "Software Engineering",
-    instructor: "inst-001",
+    instructors: ["inst-001"],
     lettersAllowed: ["A", "B", "C"],
     examDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days in ms after today
     deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5), // 5 days in ms after today
@@ -88,6 +88,11 @@ export class inMemoryDatastore implements datastore {
     updatedAt: null,
   }];
 
+  // tmp student course grades
+  private studentCourseGrades: StudentCourseGrade[] = [
+    { studentId: "001", courseId: "course-101", grade: 60, gradeLetter: "DD" }, 
+    { studentId: "002", courseId: "course-101", grade: 45, gradeLetter: "FF" }, 
+  ];
 
 
   //? Secretary DAO implementation - only get not create
@@ -140,78 +145,143 @@ export class inMemoryDatastore implements datastore {
   }
 
 
-  addCourseToStudent(studentId: string, courseId: string): boolean  {
-    // determine which student to add the course to
-   const student = this.getStudentById(studentId);
-    if (student) {
-      student.courses.push(courseId);
-      const status = student.courses.includes(courseId);
-      if (status) {
-        return true;
-      }
+  addCourseToStudent(studentId: string, courseId: string, grade: number, gradeLetter: string): boolean  {
+    // Get the student and course
+    const student = this.getAstudent(studentId);
+    const course = this.getCourseById(courseId);
+    
+    // Validate both exist
+    if (!student || !course) {
+      return false;
     }
-    return false;
+    
+    // Check if the relationship already exists
+    if (student.courses.includes(courseId)) {
+      return false; // Already enrolled
+    }
+    
+    // Add course to student's course list
+    student.courses.push(courseId);
+    
+    // Add student to course's student list if not already there
+    if (!course.students.includes(studentId)) {
+      course.students.push(studentId);
+    }
+    
+    // Add course to student course grades
+    this.studentCourseGrades.push({
+      studentId: studentId,
+      courseId: courseId,
+      grade: grade,
+      gradeLetter: gradeLetter
+    });
+
+    return true;
   }
 
 
   addRistExamToStudent(studentId: string, resitExamId: string): boolean {  
-
-
-    const student = this.getStudentById(studentId);
-    if (student) {    
-      student.resitExams.push(resitExamId);
-      return true;
+    // Get the student and resit exam
+    const student = this.getAstudent(studentId);
+    const resitExam = this.getResitExam(resitExamId);
+    
+    // Validate both exist
+    if (!student || !resitExam) {
+      return false;
     }
-    return false;
+    
+    // Check if the relationship already exists
+    if (student.resitExams.includes(resitExamId)) {
+      return false; // Already enrolled
+    }
+    
+    // Add resit exam to student's resit exams list
+    student.resitExams.push(resitExamId);
+    
+    // Add student to resit exam's students list if not already there
+    if (!resitExam.students.includes(studentId)) {
+      resitExam.students.push(studentId);
+    }
+    
+    return true;
   }
 
   
   removeStudentFromCourse(studentId: string, courseId: string): boolean {
-    const courseIndex = this.courses.findIndex(c => c.id === courseId);
-    const student = this.getStudentById(studentId);
+    // Get the student and course
+    const student = this.getAstudent(studentId);
+    const course = this.getCourseById(courseId);
     
-    if (courseIndex === -1 || !student) return false;
-
-    // Remove student from course's student list
-    const studentIndex = this.courses[courseIndex].students.indexOf(studentId);
-    if (studentIndex !== -1) {
-      this.courses[courseIndex].students.splice(studentIndex, 1);
-      
-      // Remove course from student's course list
-      const studentCourseIndex = student.courses.indexOf(courseId);
-      if (studentCourseIndex !== -1) {
-        student.courses.splice(studentCourseIndex, 1);
-      }
-      
-      return true;
+    // Validate both exist
+    if (!student || !course) {
+      return false;
     }
-    return false;
+    
+    // Check if the relationship exists
+    if (!student.courses.includes(courseId)) {
+      return false; // Not enrolled
+    }
+    
+    // Remove course from student's course list
+    const studentCourseIndex = student.courses.indexOf(courseId);
+    if (studentCourseIndex !== -1) {
+      student.courses.splice(studentCourseIndex, 1);
+    }
+    
+    // Remove student from course's student list
+    const studentIndex = course.students.indexOf(studentId);
+    if (studentIndex !== -1) {
+      course.students.splice(studentIndex, 1);
+    }
+    
+    return true;
   }
 
 
-  removeStudentFromResitExamFrom(studentId: string, resitExamId: string): void {
-    const student = this.getStudentById(studentId); // 🔍 fetch student
-    if (student) {
-      const index = student.resitExams.indexOf(resitExamId); // 🔍 find resitExam
-      if (index !== -1) {
-        student.resitExams.splice(index, 1); // 🧹 remove exam
-      }
+  removeStudentFromResitExam(studentId: string, resitExamId: string): boolean {
+    // Get the student and resit exam
+    const student = this.getAstudent(studentId);
+    const resitExam = this.getResitExam(resitExamId);
+    
+    // Validate both exist
+    if (!student || !resitExam) {
+      return false;
     }
+    
+    // Check if the student is enrolled in the resit exam
+    if (!student.resitExams.includes(resitExamId)) {
+      return false; // Not enrolled
+    }
+    
+    // Remove resit exam from student's resit exams list
+    student.resitExams = student.resitExams.filter(id => id !== resitExamId);
+    
+    // Remove student from resit exam's students list
+    resitExam.students = resitExam.students.filter(id => id !== studentId);
+    
+    return true;
   }
   
 
 
   getAstudent(id: string): Student | undefined {
     const student = this.student.find(student => student.id === id);
+
     if (student) {
-      return student;
+      return {
+        ...student,
+      };
     }
     return undefined;
 
   }
 
-  getStudentById(id: string): Student | undefined {
-    return this.student.find(student => student.id === id);
+  getAstudentCoursesdetails(id: string): string[] | undefined {
+    const student = this.getAstudent(id);
+    if (student) {
+      return student.courses;
+    }
+    return undefined;
   }
 
 
@@ -223,6 +293,25 @@ export class inMemoryDatastore implements datastore {
     return undefined;
   }
 
+
+  getStudentCourseDetails(id: string): StudentCourseDetails[] | undefined {
+    const student = this.getAstudent(id);
+    if (!student) {
+      return undefined;
+    }
+
+    return student.courses.map(courseId => {
+      const course = this.courses.find(c => c.id === courseId);
+      const grade = this.studentCourseGrades.find(g => g.studentId === id && g.courseId === courseId);
+      
+      return {
+        courseId: courseId,
+        courseName: course?.name || 'Unknown Course',
+        grade: grade?.grade,
+        gradeLetter: grade?.gradeLetter
+      };
+    });
+  }
 
 
  
@@ -265,56 +354,101 @@ export class inMemoryDatastore implements datastore {
   }
 
 
-  getInsturctorCoursesById(courseId: string): string[] {
-    // check if the Instructor Id is extists
-    if (this.getInstructorById(courseId) === undefined) {
-      throw new Error("Instructor not found");
+  getInsturctorCourses(instructorId: string): string[] | undefined {
+    const instructor = this.getInstructorById(instructorId);
+    if (instructor) {
+      return instructor.courses;
     }
-    return this.instructor.filter(instructor => instructor.courses.includes(courseId)).map(instructor => instructor.id);
+    return undefined;
   }
 
 
-  getInstructorResitExamsById(id: string, resitExamId: string): string[] {
-    // check if the Instructor Id is extists
-    if (this.getInstructorById(id) === undefined) {
-      throw new Error("Instructor not found");
+  getInstructorResitExams(id: string): string[] | undefined {
+    const instructor = this.getInstructorById(id);
+    if (instructor) {
+      return instructor.resitExams;
     }
-    // check if the ResitExam Id is extists
-    if (this.getResitExam(id, resitExamId) === undefined) {
-      throw new Error("Resit exam not found");
+    return undefined;
+  }
+
+
+  getInstructorCourseDetails(id: string): InstructorCourseDetails[] | undefined {
+    const instructor = this.getInstructorById(id);
+    if (!instructor) {
+      return undefined;
     }
-    return this.instructor.filter(instructor => 
-      instructor.resitExams.some(exam => exam === resitExamId)
-    ).map(instructor => instructor.id);
+
+    return instructor.courses.map(courseId => {
+      const course = this.courses.find(c => c.id === courseId);
+      if (!course) {
+        return {
+          courseId: courseId,
+          courseName: 'Unknown Course',
+          department: 'Unknown Department',
+          students: []
+        };
+      }
+      
+      return {
+        courseId: course.id,
+        courseName: course.name,
+        department: course.department,
+        students: course.students
+      };
+    });
   }
 
 
   addCourseToInstructor(id: string, courseId: string): boolean {
     // determine which instructor to add the course to
     const instructor = this.getInstructorById(id);
-    if (instructor) {
+    const course = this.getCourseById(courseId);
+    
+
+    if (instructor && course) {
+      // add the course to the instructor
       instructor.courses.push(courseId);
+      // add the instructor to the course
+      course.instructor = id;
+
       const status = instructor.courses.includes(courseId);
-      if (status) {
+      const status2 = course.instructor === id;
+      if (status && status2) {
         return true;
       }
+      return false;
     }
     return false;
   }
 
 
 
-  addResitExamToInstructor(id: string, resitExamId: string): boolean {
-    const instructor = this.getInstructorById(id);
-    if (instructor) {
-      instructor.resitExams.push(resitExamId);
-      const status = instructor.resitExams.includes(resitExamId);
-      if (status) {
-        return true;
-      }
+  addResitExamToInstructor(instructorId: string, resitExamId: string): boolean {
+    // Get the instructor and resit exam
+    const instructor = this.getInstructorById(instructorId);
+    const resitExam = this.getResitExam(resitExamId);
+    
+    // Validate both exist
+    if (!instructor || !resitExam) {
+      return false;
     }
-    return false;
-  } 
+    
+    // Check if the relationship already exists
+    if (instructor.resitExams.includes(resitExamId)) {
+      return false; // Already assigned
+    }
+    
+    // Add resit exam to instructor's resit exams list
+    instructor.resitExams.push(resitExamId);
+    
+    // Add instructor to resit exam's instructors list if not already there
+    if (!resitExam.instructors.includes(instructorId)) {
+      resitExam.instructors.push(instructorId);
+    }
+    
+    return true;
+  }
+
 
 
   // removeCourseFromInstructor(id: string, courseId: string): void {
@@ -452,13 +586,13 @@ export class inMemoryDatastore implements datastore {
 
 
   //? ResitExam DAO implementation
-  createResitExam(id: string, name: string, department: string, isntructorId: string, lettersAllowed: string[], examDate: Date, deadline: Date, location: string, secretaryId: string): void{
+  createResitExam(id: string, name: string, department: string, instructorId: string, lettersAllowed: string[], examDate: Date, deadline: Date, location: string, secretaryId: string): void {
     // check if the secretary Id is extists and authorized
     if (this.getSecretaryById(secretaryId) === undefined) {
       throw new Error("Unauthorized Secretary ID");
     }
     // check if the instructor Id is extists
-    if (this.getInstructorById(isntructorId) === undefined) {
+    if (this.getInstructorById(instructorId) === undefined) {
       throw new Error("Instructor ID not found");
     }
     // check if the ResitExam Id is already taken
@@ -490,7 +624,7 @@ export class inMemoryDatastore implements datastore {
       throw new Error("ResitExam name is empty");
     }
     // check if the ResitExam Instructor is correct and not empty
-    if (isntructorId === undefined) {
+    if (instructorId === undefined) {
       throw new Error("ResitExam instructor is empty");
     }
     // check if the ResitExam ID is not empty
@@ -504,14 +638,14 @@ export class inMemoryDatastore implements datastore {
       id,
       name,
       department,
-      instructor: isntructorId,
+      instructors: [instructorId], // Initialize with the provided instructor ID
       lettersAllowed,
       examDate,
       deadline,
       location,
       students: [],
       createdAt: new Date(),
-      createdBy: isntructorId,
+      createdBy: instructorId,
       updatedAt: new Date() 
     };
     
@@ -519,9 +653,9 @@ export class inMemoryDatastore implements datastore {
   }
 
 
-  getResitExam(id: string, instructorID: string): ResitExam | undefined {
+  getResitExam(id: string): ResitExam | undefined {
     
-    return this.resitExams.find(resitExam => resitExam.id === id && resitExam.instructor === instructorID);
+    return this.resitExams.find(resitExam => resitExam.id === id);
   }
 
 
@@ -530,7 +664,7 @@ export class inMemoryDatastore implements datastore {
     if (this.getSecretaryById(secretaryId) === undefined) {
       throw new Error("Unauthorized Secretary ID");
     }
-    const index = this.resitExams.findIndex(resitExam => resitExam.id === id && resitExam.instructor === instructorID);
+    const index = this.resitExams.findIndex(resitExam => resitExam.id === id && resitExam.instructors.includes(instructorID));
     if (index !== -1) {
       this.resitExams.splice(index, 1);
     }
@@ -684,7 +818,7 @@ export class inMemoryDatastore implements datastore {
     this.resitExams[index] = {
       ...originalExam, // Keep unchanged fields (students, createdAt, createdBy, addedAt etc.)
       name: name,               // Update name
-      instructor: instructorID, // Update instructor
+      instructors: [instructorID], // Update instructor as an array
       department: department,   // Update department
       lettersAllowed: Letters,  // Update allowed letters
       examDate: examDate,       // Update exam date
@@ -703,13 +837,13 @@ export class inMemoryDatastore implements datastore {
     if (this.getInstructorById(instructorId) === undefined) {
       throw new Error("Instructor not found");
     }
-    return this.resitExams.filter(resitExam => resitExam.instructor === instructorId);
+    return this.resitExams.filter(resitExam => resitExam.instructors.includes(instructorId));
 
   }
 
   getStudentResitExams(studentId: string): ResitExam[] {
     // check if the student Id is extists
-    if (this.getStudentById(studentId) === undefined) {
+    if (this.getAstudent(studentId) === undefined) {
       throw new Error("Student not found");
     }
     return this.resitExams.filter(resitExam => resitExam.students.includes(studentId));
@@ -717,53 +851,96 @@ export class inMemoryDatastore implements datastore {
 
   // Assign instructor to course
   assignInstructorToCourse(instructorId: string, courseId: string): boolean {
-    const courseIndex = this.courses.findIndex(c => c.id === courseId);
-    if (courseIndex === -1) return false;
-
+    // Get the instructor and course
+    const instructor = this.getInstructorById(instructorId);
+    const course = this.getCourseById(courseId);
+    
+    // Validate both exist
+    if (!instructor || !course) {
+      return false;
+    }
+    
+    // Check if the course already has an instructor
+    if (course.instructor) {
+      return false; // Course already has an instructor
+    }
+    
+    // Check if the instructor is already assigned to this course
+    if (instructor.courses.includes(courseId)) {
+      return false; // Already assigned
+    }
+    
+    // Add course to instructor's course list
+    instructor.courses.push(courseId);
+    
     // Update the course with the new instructor
-    this.courses[courseIndex] = {
-      ...this.courses[courseIndex],
-      instructor: instructorId,
-      updatedAt: new Date()
-    };
-
+    course.instructor = instructorId;
+    course.updatedAt = new Date();
+    
     return true;
   }
 
   // Unassign instructor from course
-  unassignInstructorFromCourse(courseId: string): boolean {
-    const courseIndex = this.courses.findIndex(c => c.id === courseId);
-    if (courseIndex === -1) return false;
-
+  unassignInstructorFromCourse(courseId: string, intsId : string): boolean {
+    // Get the course
+    const course = this.getCourseById(courseId);
+    
+    // Validate course exists
+    if (!course) {
+      return false;
+    }
+    
+    // Check if the course has an instructor
+    if (!course.instructor) {
+      return false; // No instructor assigned
+    }
+    
+    // Get the instructor
+    const instructor = this.getInstructorById(intsId);
+    
+    // Validate instructor exists
+    if (!instructor) {
+      return false;
+    }
+    
+    // Remove course from instructor's course list
+    const courseIndex = instructor.courses.indexOf(courseId);
+    if (courseIndex !== -1) {
+      instructor.courses.splice(courseIndex, 1);
+    }
+    
     // Remove instructor from course
-    this.courses[courseIndex] = {
-      ...this.courses[courseIndex],
-      instructor: undefined,
-      updatedAt: new Date()
-    };
-
+    course.instructor = undefined;
+    course.updatedAt = new Date();
+    
     return true;
   }
 
   // Add student to course
   addStudentToCourse(studentId: string, courseId: string): boolean {
-    const courseIndex = this.courses.findIndex(c => c.id === courseId);
-    const student = this.getStudentById(studentId);
+    // Get the student and course
+    const student = this.getAstudent(studentId);
+    const course = this.getCourseById(courseId);
     
-    if (courseIndex === -1 || !student) return false;
-
-    // Add student to course's student list if not already there
-    if (!this.courses[courseIndex].students.includes(studentId)) {
-      this.courses[courseIndex].students.push(studentId);
-      
-      // Add course to student's course list if not already there
-      if (!student.courses.includes(courseId)) {
-        student.courses.push(courseId);
-      }
-      
-      return true;
+    // Validate both exist
+    if (!student || !course) {
+      return false;
     }
-    return false;
+    
+    // Check if the relationship already exists
+    if (course.students.includes(studentId)) {
+      return false; // Already enrolled
+    }
+    
+    // Add student to course's student list
+    course.students.push(studentId);
+    
+    // Add course to student's course list if not already there
+    if (!student.courses.includes(courseId)) {
+      student.courses.push(courseId);
+    }
+    
+    return true;
   }
 
   // Get all students in a course
@@ -776,7 +953,7 @@ export class inMemoryDatastore implements datastore {
 
   // Get all courses for a student
   getCoursesForStudent(studentId: string): Course[] {
-    const student = this.getStudentById(studentId);
+    const student = this.getAstudent(studentId);
     if (!student) return [];
 
     return this.courses.filter(course => student.courses.includes(course.id));
@@ -847,5 +1024,46 @@ export class inMemoryDatastore implements datastore {
       lastUpdated: course.updatedAt
     };
   }
+
+  // Check if a student is enrolled in a course
+  isStudentEnrolledInCourse(studentId: string, courseId: string): boolean {
+    const student = this.getAstudent(studentId);
+    const course = this.getCourseById(courseId);
+    
+    // Validate both exist
+    if (!student || !course) {
+      return false;
+    }
+    
+    // Check if the relationship exists
+    return student.courses.includes(courseId) && course.students.includes(studentId);
+  }
+
+  // Get enrollment status of a student in all courses
+  getStudentEnrollmentStatus(studentId: string): { courseId: string; enrolled: boolean }[] {
+    const student = this.getAstudent(studentId);
+    if (!student) {
+      return [];
+    }
+    
+    return this.courses.map(course => ({
+      courseId: course.id,
+      enrolled: student.courses.includes(course.id)
+    }));
+  }
+
+  // Get enrollment count for a course
+  getCourseEnrollmentCount(courseId: string): number {
+    const course = this.getCourseById(courseId);
+    if (!course) {
+      return 0;
+    }
+    
+    return course.students.length;
+  }
+
+
+
+
 
 }
