@@ -48,6 +48,7 @@ export interface Student extends User {
 export interface Course {
   id: string;
   name: string;
+  resitExamId: string | undefined;
   department: string;
   students: string[];  // Array of student IDs
   instructor: string | undefined; // only one instructor
@@ -59,6 +60,7 @@ export interface Course {
 
 export interface ResitExam {
   id: string;
+  courseId: string; 
   name: string;
   department: string;
   instructors: string[];  // Changed from instructor: string to instructors: string[]
@@ -67,6 +69,21 @@ export interface ResitExam {
   deadline: Date;
   location: string;
   students: string[];
+  createdAt: Date;
+  createdBy: string;
+  updatedAt: Date | null;
+}
+
+export interface ResitExamResponse {
+  id: string;
+  courseId: string; 
+  name: string;
+  department: string;
+  instructors: string[];
+  lettersAllowed: string[];
+  examDate: Date;
+  deadline: Date;
+  location: string;
   createdAt: Date;
   createdBy: string;
   updatedAt: Date | null;

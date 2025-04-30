@@ -123,7 +123,7 @@ export const getAstudent: RequestHandler<{ id: string }> = (req, res) => {
 // delete a student by id and secretaryId
 export const deleteStudent: RequestHandler<{ id: string, secretaryId: string }> = (req, res) => {
   const id = req.params.id;
-  const secretaryId = req.params.secretaryId; 
+  const secretaryId = req.body.secretaryId; 
 
   // Check if the secretary Id exists and is authorized
   const secretary = db.getSecretaryById(secretaryId);
@@ -147,9 +147,9 @@ export const deleteStudent: RequestHandler<{ id: string, secretaryId: string }> 
 };
 
 // update student information
-export const updateStudentInfo: RequestHandler<{ id: string, secretaryId: string }> = (req, res) => {
+export const updateStudentInfo: RequestHandler<{ id: string }> = (req, res) => {
   const id = req.params.id;
-  const secretary = req.params.secretaryId;
+  const secretary = req.body.secretaryId;
   const { name, email, password } = req.body;
 
   if (db.getSecretaryById(secretary) === undefined) {
@@ -254,9 +254,27 @@ export const addRistExamToStudent: RequestHandler<{ id: string}> = (req, res) : 
     return res.status(400).send('Missing required fields: resitExamId');
     
   }
+
+  //! The student must be enrolled in the course for which the resit exam is intended
+
+  // check if the student is enrolled in the course that the resit exam is for
+  const courseId = db.getResitExam(resitExamId)?.courseId;
+  if (!courseId) { // if the courseId is not correct
+    throw new Error("Invalid Resit Exam or missing course information");
+  }
+  
+  if (!student.courses.includes(courseId)) {
+    throw new Error("Student not enrolled in the course");
+  }
+
   //? check if the ResitExam Id is correct | not implemented
   if (db.getResitExam(resitExamId) === undefined) {
     throw new Error("Invalid Resit Exam ID or not found");
+  }
+
+  // check if the student is already enrolled in the resit exam
+  if (student.resitExams.includes(resitExamId)) {
+    throw new Error("Student already enrolled in the resit exam");
   }
 
   try {
@@ -332,7 +350,7 @@ export const removeStudentFromResitExam: RequestHandler<{ id: string}> = (req, r
   console.log("------------------------111");
   console.log(id, resitExamId);
 
-  // Check if the ResitExam Id is extists | not implemented
+  // Check if the ResitExam Id is extists
   if (db.getResitExam(resitExamId) == undefined) {
     throw new Error("Invalid Resit Exam ID or not found");
   }

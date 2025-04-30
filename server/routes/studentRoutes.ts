@@ -40,13 +40,13 @@ router.get('/student/resitexams/:id', getStudentResitExams);
 router.get('/student/courses/:id', getStudentCourses);
 
 // Get student's courses details with grades 
-router.get('/student/details/:id', getStudentCourseDetails);
+router.get('/student/c-details/:id', getStudentCourseDetails);
 
 // Delete a student by ID
-router.delete('/student/:id/:secretaryId', deleteStudent);
+router.delete('/student/:id', deleteStudent);
 
 // Update student information
-router.put('/student/:id/:secretaryId', updateStudentInfo);
+router.put('/student/:id', updateStudentInfo);
 
 // Add a course to a student
 router.post('/student/:id', addCourseToStudent);
@@ -58,6 +58,7 @@ router.get('/student/:id', getAstudent);
 router.delete('/student-course/:id', removeStudentFromCourse);
 
 
-
+// Get a student's resit exams
+router.get('/student/r-exams/:id', getStudentResitExams);
 
 export default router;

@@ -627,3 +627,4 @@ export const getInstructorCourseDetails = (req: Request, res: Response) : any =>
   }
 };
 
+// get instructor's resit exams

@@ -8,6 +8,6 @@ export interface InstructorDao {
   updateInstructor(id: string, name: string, email: string, password: string , secretaryID: string): void;
   
   getInsturctorCourses(id: string): string[] | undefined;
-  getInstructorResitExams(id: string): string[] | undefined;
   getInstructorCourseDetails(id: string): InstructorCourseDetails[] | undefined;
+  getInstructorResitExams(id: string): ResitExam[] | undefined;
 }
