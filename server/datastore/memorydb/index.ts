@@ -28,7 +28,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     email: "Yusuf@example.com",
     password: "password123",
     courses: ["course-101"],
-    resitExams: [],
+    resitExams: ["resit-001"],
     createdAt: new Date(),
     createdBy: "admin123",
     updatedAt: new Date()
@@ -69,11 +69,11 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     name: "Resit Exam 1",
     department: "Software Engineering",
     instructors: ["inst-001"],
-    lettersAllowed: ["CD", "DD", "FF"],
+    lettersAllowed: ["CD", "DD", "FF", "FD"],
     examDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days in ms after today
     deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5), // 5 days in ms after today
     location: "Altenizde Main Kampus A Blcok A Nirmen Tahran",
-    students: [],
+    students: ["001", "002"],
     createdAt: new Date(),
     createdBy: "sec-001",
     updatedAt: null
@@ -96,11 +96,14 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     { studentId: "002", courseId: "course-101", grade: 45, gradeLetter: "FF" }, 
   ];
 
-
-
-
-
-
+  // Interface for student resit exam results
+  private studentResitExamResults: {
+    studentId: string;
+    resitExamId: string;
+    grade: number;
+    gradeLetter: string;
+    submittedAt: Date;
+  }[] = [];
 
   
 //? Secretary DAO implementation - only get not create
@@ -255,6 +258,17 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     if (isAlreadyEnrolled) {
       return false; // Already enrolled
     }
+
+    // check if the resit exam Letters are allowed for the student to take the resit exam
+    const lettersAllowed = resitExam?.lettersAllowed;
+    const courseId = resitExam?.courseId;
+    const studentGradeLetter = this.studentCourseGrades.find((g: { studentId: string; courseId: string; gradeLetter: string }) => 
+      g.studentId === studentId && g.courseId === courseId)?.gradeLetter;
+
+    if (!lettersAllowed?.includes(studentGradeLetter || '')) {
+      return false; // Invalid grade letter
+    }
+
     
     // Add resit exam to student's resit exams list
     student.resitExams.push(resitExamId);
@@ -290,6 +304,12 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     const studentIndex = course.students.indexOf(studentId);
     if (studentIndex !== -1) {
       course.students.splice(studentIndex, 1);
+    }
+
+    // remove the student course grad e from studentCourseGrades
+    const studentCourseGradeIndex = this.studentCourseGrades.findIndex(g => g.studentId === studentId && g.courseId === courseId);
+    if (studentCourseGradeIndex !== -1) {
+      this.studentCourseGrades.splice(studentCourseGradeIndex, 1);
     }
 
     //! Also The resit exam must be removed if the student has applied for it
@@ -359,13 +379,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
 
   }
 
-  getAstudentCoursesdetails(id: string): string[] | undefined {
-    const student = this.getAstudent(id);
-    if (student) {
-      return student.courses;
-    }
-    return undefined;
-  }
 
   getStudentCourses(id: string): string[] | undefined {
     const student = this.student.find(student => student.id === id);
@@ -385,11 +398,27 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
       const course = this.courses.find(c => c.id === courseId);
       const grade = this.studentCourseGrades.find(g => g.studentId === id && g.courseId === courseId);
       
+      // Get resit exam result if it exists
+      let resitExamResult = undefined;
+      if (course?.resitExamId) {
+        resitExamResult = this.studentResitExamResults.find(
+          r => r.studentId === id && r.resitExamId === course.resitExamId
+        );
+      }
+
       return {
         courseId: courseId,
         courseName: course?.name || 'Unknown Course',
         grade: grade?.grade,
-        gradeLetter: grade?.gradeLetter
+        gradeLetter: grade?.gradeLetter,
+        resitExam: course?.resitExamId ? {
+          // will return the resit exam id, grade, grade letter 
+          //if the student has a resit exam and the new results are submitted
+          resitExamId: course.resitExamId,
+          grade: resitExamResult?.grade,
+          gradeLetter: resitExamResult?.gradeLetter,
+          submittedAt: resitExamResult?.submittedAt
+        } : undefined
       };
     });
   }
@@ -676,6 +705,125 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     }
   }
 
+  unassignInstructorFromCourse(courseId: string, intsId : string): boolean {
+    // Get the course
+    const course = this.getCourseById(courseId);
+    
+    // Validate course exists
+    if (!course) {
+      return false;
+    }
+    
+    // Check if the course has an instructor
+    if (!course.instructor) {
+      return false; // No instructor assigned
+    }
+    
+    // Get the instructor
+    const instructor = this.getInstructorById(intsId);
+    
+    // Validate instructor exists
+    if (!instructor) {
+      return false;
+    }
+    
+    // Remove course from instructor's course list
+    const courseIndex = instructor.courses.indexOf(courseId);
+    if (courseIndex !== -1) {
+      instructor.courses.splice(courseIndex, 1);
+    }
+    
+    // Remove instructor from course
+    course.instructor = undefined;
+    course.updatedAt = new Date();
+    
+    return true;
+  }
+
+  addStudentToCourse(studentId: string, courseId: string): boolean {
+    // Get the student and course
+    const student = this.getAstudent(studentId);
+    const course = this.getCourseById(courseId);
+    
+    // Validate both exist
+    if (!student || !course) {
+      return false;
+    }
+    
+    // Check if the relationship already exists
+    if (course.students.includes(studentId)) {
+      return false; // Already enrolled
+    }
+    
+    // Add student to course's student list
+    course.students.push(studentId);
+    
+    // Add course to student's course list if not already there
+    if (!student.courses.includes(courseId)) {
+      student.courses.push(courseId);
+    }
+    
+    return true;
+  }
+
+  getStudentsInCourse(courseId: string): Student[] {
+    const course = this.getCourseById(courseId);
+    if (!course) return [];
+
+    return this.student.filter(student => course.students.includes(student.id));
+  }
+
+  getCoursesForStudent(studentId: string): Course[] {
+    const student = this.getAstudent(studentId);
+    if (!student) return [];
+
+    return this.courses.filter(course => student.courses.includes(course.id));
+  }
+
+  getCoursesForInstructor(instructorId: string): Course[] {
+    return this.courses.filter(course => course.instructor === instructorId);
+  }
+
+  getCourseInstructorDetails(courseId: string): Instructor | undefined {
+    const course = this.getCourseById(courseId);
+    if (!course || !course.instructor) return undefined;
+
+    return this.getInstructorById(course.instructor);
+  }
+
+  updateCourseDetails(
+    courseId: string,
+    updates: {
+      name?: string;
+      department?: string;
+      instructor?: string;
+    },
+    secretaryId: string
+  ): boolean {
+    // Verify secretary authorization
+    if (!this.getSecretaryById(secretaryId)) return false;
+
+    const courseIndex = this.courses.findIndex(c => c.id === courseId);
+    if (courseIndex === -1) return false;
+
+    // If changing instructor, verify new instructor exists
+    if (updates.instructor && !this.getInstructorById(updates.instructor)) {
+      return false;
+    }
+
+    // Update the course
+    this.courses[courseIndex] = {
+      ...this.courses[courseIndex],
+      ...updates,
+      updatedAt: new Date()
+    };
+
+    return true;
+  }
+
+
+
+
 
 
 
@@ -868,122 +1016,31 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return this.resitExams.filter(resitExam => resitExam.instructors.includes(id));
   }
 
- 
-  unassignInstructorFromCourse(courseId: string, intsId : string): boolean {
-    // Get the course
-    const course = this.getCourseById(courseId);
-    
-    // Validate course exists
-    if (!course) {
-      return false;
-    }
-    
-    // Check if the course has an instructor
-    if (!course.instructor) {
-      return false; // No instructor assigned
-    }
-    
-    // Get the instructor
-    const instructor = this.getInstructorById(intsId);
-    
-    // Validate instructor exists
-    if (!instructor) {
-      return false;
-    }
-    
-    // Remove course from instructor's course list
-    const courseIndex = instructor.courses.indexOf(courseId);
-    if (courseIndex !== -1) {
-      instructor.courses.splice(courseIndex, 1);
-    }
-    
-    // Remove instructor from course
-    course.instructor = undefined;
-    course.updatedAt = new Date();
-    
-    return true;
+  // Get all resit exam results for a student
+  getStudentAllResitExamResults(studentId: string): { resitExamId: string; grade: number; gradeLetter: string; submittedAt: Date }[] {
+    return this.studentResitExamResults
+      .filter(r => r.studentId === studentId)
+      .map(r => ({
+        resitExamId: r.resitExamId,
+        grade: r.grade,
+        gradeLetter: r.gradeLetter,
+        submittedAt: r.submittedAt
+      }));
   }
 
-  addStudentToCourse(studentId: string, courseId: string): boolean {
-    // Get the student and course
-    const student = this.getAstudent(studentId);
-    const course = this.getCourseById(courseId);
-    
-    // Validate both exist
-    if (!student || !course) {
-      return false;
-    }
-    
-    // Check if the relationship already exists
-    if (course.students.includes(studentId)) {
-      return false; // Already enrolled
-    }
-    
-    // Add student to course's student list
-    course.students.push(studentId);
-    
-    // Add course to student's course list if not already there
-    if (!student.courses.includes(courseId)) {
-      student.courses.push(courseId);
-    }
-    
-    return true;
+  // Get all results for a specific resit exam
+  getResitExamAllResults(resitExamId: string): { studentId: string; grade: number; gradeLetter: string; submittedAt: Date }[] {
+    return this.studentResitExamResults
+      .filter(r => r.resitExamId === resitExamId)
+      .map(r => ({
+        studentId: r.studentId,
+        grade: r.grade,
+        gradeLetter: r.gradeLetter,
+        submittedAt: r.submittedAt
+      }));
   }
+  
 
-  getStudentsInCourse(courseId: string): Student[] {
-    const course = this.getCourseById(courseId);
-    if (!course) return [];
-
-    return this.student.filter(student => course.students.includes(student.id));
-  }
-
-  getCoursesForStudent(studentId: string): Course[] {
-    const student = this.getAstudent(studentId);
-    if (!student) return [];
-
-    return this.courses.filter(course => student.courses.includes(course.id));
-  }
-
-  getCoursesForInstructor(instructorId: string): Course[] {
-    return this.courses.filter(course => course.instructor === instructorId);
-  }
-
-  getCourseInstructorDetails(courseId: string): Instructor | undefined {
-    const course = this.getCourseById(courseId);
-    if (!course || !course.instructor) return undefined;
-
-    return this.getInstructorById(course.instructor);
-  }
-
-  updateCourseDetails(
-    courseId: string,
-    updates: {
-      name?: string;
-      department?: string;
-      instructor?: string;
-    },
-    secretaryId: string
-  ): boolean {
-    // Verify secretary authorization
-    if (!this.getSecretaryById(secretaryId)) return false;
-
-    const courseIndex = this.courses.findIndex(c => c.id === courseId);
-    if (courseIndex === -1) return false;
-
-    // If changing instructor, verify new instructor exists
-    if (updates.instructor && !this.getInstructorById(updates.instructor)) {
-      return false;
-    }
-
-    // Update the course
-    this.courses[courseIndex] = {
-      ...this.courses[courseIndex],
-      ...updates,
-      updatedAt: new Date()
-    };
-
-    return true;
-  }
 
 
 
@@ -1051,7 +1108,116 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return course.students.length;
   }
 
+  // Update a single student resit exam grades
+  // updateStudentResitExamGrades(grades: { studentId: string; courseId: string; grade: number; gradeLetter: string }[]): boolean {
+  //   try {
+  //     grades.forEach(grade => {
+  //       // Find the existing grade entry
+  //       const existingGradeIndex = this.studentCourseGrades.findIndex(
+  //         g => g.studentId === grade.studentId && g.courseId === grade.courseId
+  //       );
 
+  //       if (existingGradeIndex !== -1) {
+  //         // Update existing grade
+  //         this.studentCourseGrades[existingGradeIndex] = {
+  //           ...this.studentCourseGrades[existingGradeIndex],
+  //           grade: grade.grade,
+  //           gradeLetter: grade.gradeLetter
+  //         };
+  //       } else {
+  //         // Add new grade if it doesn't exist
+  //         this.studentCourseGrades.push({
+  //           studentId: grade.studentId,
+  //           courseId: grade.courseId,
+  //           grade: grade.grade,
+  //           gradeLetter: grade.gradeLetter
+  //         });
+  //       }
+  //     });
+  //     return true;
+  //   } catch (error) {
+  //     console.error('Error updating student resit exam grades:', error);
+  //     return false;
+  //   }
+  // }
+  // Update a single student resit exam results
+  updateStudentResitExamResults(studentId: string, resitExamId: string, grade: number, gradeLetter: string): boolean {
+    try {
+      // Find the existing result entry
+      const existingResultIndex = this.studentResitExamResults.findIndex(
+        r => r.studentId === studentId && r.resitExamId === resitExamId
+      );
+
+        // Update existing result
+        if (existingResultIndex !== -1) {
+          this.studentResitExamResults[existingResultIndex] = {
+            ...this.studentResitExamResults[existingResultIndex],
+            grade: grade,
+            gradeLetter: gradeLetter,
+            submittedAt: new Date()
+          };
+        } else {
+          // Add new result if it doesn't exist
+          this.studentResitExamResults.push({
+            studentId: studentId,
+            resitExamId: resitExamId,
+            grade: grade,
+            gradeLetter: gradeLetter,
+            submittedAt: new Date()
+          });
+        }
+      return true;
+    } catch (error: unknown) {
+      console.error('Error updating student resit exam results:', error);
+      return false;
+    }
+  }
+
+  // Update resit exam results for all students in a course
+  updateAllStudentsResitExamResults(resitExamId: string, results: { studentId: string; grade: number; gradeLetter: string }[]): boolean {
+    try {
+  
+
+      // Update or add results for each student
+      results.forEach(result => {
+        const existingResultIndex = this.studentResitExamResults.findIndex(
+          r => r.studentId === result.studentId && r.resitExamId === resitExamId
+        );
+
+        if (existingResultIndex !== -1) {
+          // Update existing result
+          this.studentResitExamResults[existingResultIndex] = {
+            ...this.studentResitExamResults[existingResultIndex],
+            grade: result.grade,
+            gradeLetter: result.gradeLetter,
+            submittedAt: new Date()
+          };
+        } else {
+          // Add new result
+          this.studentResitExamResults.push({
+            studentId: result.studentId,
+            resitExamId: resitExamId,
+            grade: result.grade,
+            gradeLetter: result.gradeLetter,
+            submittedAt: new Date()
+          });
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating all students resit exam results:', error);
+      return false;
+    }
+  }
+
+  // Get student resit exam results
+  getStudentResitExamResults(studentId: string, resitExamId: string): { grade: number; gradeLetter: string; submittedAt: Date } | undefined {
+    const result = this.studentResitExamResults.find(
+      r => r.studentId === studentId && r.resitExamId === resitExamId
+    );
+    return result ? { grade: result.grade, gradeLetter: result.gradeLetter, submittedAt: result.submittedAt } : undefined;
+  }
 
 
 }

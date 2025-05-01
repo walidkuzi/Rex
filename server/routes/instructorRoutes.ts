@@ -11,7 +11,11 @@ import {
   getInstructorResitExams,
   getInstructorCourseDetails,
   createResitExam,
-  updateResitExam
+  updateResitExam,
+  // updateStudentResitExamGrades,
+  updateAStudentResitExamResults,
+  getResitExamAllResults,
+  updateAllStudentsResitExamResults
 } from '../hundlers/instructorHandler';
 
 const router = express.Router();
@@ -42,5 +46,19 @@ router.post('/instructor/r-exam/:id', createResitExam);
 router.put('/instructor/r-exam/:id', updateResitExam);
 router.delete('/instructor/r-exam/:id', deleteResitExam);
 router.get('/instructor/r-exams/:id', getInstructorResitExams);
+
+// router.put('/instructor/course/:id', updateStudentResitExamGrades); // still not expermenting
+
+// Resit exam results management
+//! single student resit exam results
+router.put('/instructor/course/:courseId/student/:studentId', updateAStudentResitExamResults);
+
+//! all students resit exam results
+router.put('/instructor/resit-results/all/:resitExamId', updateAllStudentsResitExamResults);
+
+// Order matters: more specific routes first
+
+
+router.get('/instructor/resit-results/exam/:resitExamId', getResitExamAllResults); // still not expermenting
 
 export default router;

@@ -642,6 +642,7 @@ export const getInstructorCourseDetails = (req: Request, res: Response) : any =>
   }
 };
 
+
 // update a resit exam
 export const updateResitExam: RequestHandler<{ id: string }> = (req, res) : any => {
   const { id } = req.params; // instructor id
@@ -753,3 +754,194 @@ export const updateResitExam: RequestHandler<{ id: string }> = (req, res) : any 
     });
   }
 };
+
+
+
+
+/*
+
+export const updateStudentResitExamGrades: RequestHandler<{ id: string }> = (req, res) : any => {
+  try {
+    const { id } = req.params; // course id 
+    const { grades } = req.body;
+    
+    if (!Array.isArray(grades) || grades.length === 0) {
+      return res.status(400).json({ error: 'Invalid grades data' });
+    }
+
+    // Validate each grade entry
+    for (const grade of grades) {
+      if (!grade.studentId || !grade.courseId || grade.grade === undefined || !grade.gradeLetter) {
+        return res.status(400).json({ error: 'Invalid grade entry format' });
+      }
+    }
+
+    const success = db.updateStudentResitExamGrades(grades);
+    
+    if (success) {
+      return res.status(200).json({ message: 'Grades updated successfully' });
+    } else {
+      return res.status(500).json({ error: 'Failed to update grades' });
+    }
+  } catch (error) {
+    console.error('Error in updateStudentResitExamGrades:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}; */
+
+
+//? update a single student's resit exam results
+export const updateAStudentResitExamResults: RequestHandler<{ courseId: string, studentId: string }> = (req, res) : any => {
+  try {
+    const { grade, gradeLetter } = req.body;
+    // Extract studentId and resitExamId from request params
+    const { courseId, studentId } = req.params;
+ 
+    const resitExamId = db.getCourseById(courseId)?.resitExamId;
+    
+    if (!studentId || !resitExamId) {
+      return res.status(400).json({ error: 'Student ID and course exam ID are required' });
+    }
+    
+    if (grade === undefined || gradeLetter === undefined) {
+      return res.status(400).json({ error: 'Grade and grade letter are required' });
+    }
+    
+    
+
+    // update the results
+    const success = db.updateStudentResitExamResults(req.params.studentId, resitExamId, grade, gradeLetter);
+    
+    if (success) {
+      return res.status(200).json({ message: 'Resit exam results updated successfully' });
+    } else {
+      return res.status(500).json({ error: 'Failed to update resit exam results' });
+    }
+  } catch (error) {
+    console.error('Error in updateStudentResitExamResults:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+//? update all students' resit exam results
+//! All students in the restit Exam must be in the results array
+export const updateAllStudentsResitExamResults = (req: Request, res: Response): any => {
+  try {
+    const { resitExamId } = req.params;
+    const { results } = req.body;
+    
+    // Validate resit exam ID
+    if (!resitExamId) {
+      return res.status(400).json({ error: 'Resit exam ID is required' });
+    }
+
+
+    // Validate results data
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({ error: 'Invalid results data' });
+    }
+
+    // Validate each result entry
+    for (const result of results) {
+      if (!result.studentId || result.grade === undefined || !result.gradeLetter) {
+        return res.status(400).json({ 
+          error: 'Invalid result entry format',
+          details: 'Each result must contain studentId, grade, and gradeLetter'
+        });
+      }
+
+      // Validate grade is a number between 0 and 100
+      if (typeof result.grade !== 'number' || result.grade < 0 || result.grade > 100) {
+        return res.status(400).json({ 
+          error: 'Invalid grade value',
+          details: 'Grade must be a number between 0 and 100'
+        });
+      }
+
+      // Validate grade letter format
+      if (!['AA', 'BA', 'BB', 'CB', 'CC', 'DC', 'DD', 'FD', 'FF'].includes(result.gradeLetter)) {
+        return res.status(400).json({ 
+          error: 'Invalid grade letter',
+          details: 'Grade letter must be one of: AA, BA, BB, CB, CC, DC, DD, FD, FF'
+        });
+      }
+
+      // validate students are enrolled in the resit exam
+      // Get enrolled students for the resit exam
+      const resitExam = db.getResitExam(resitExamId);
+      console.log(`resitExam : ${resitExam?.id}`);
+      console.log(`resitExam students : ${resitExam?.students}`);
+      if (!resitExam || !resitExam.students || resitExam.students.length === 0) {
+        return res.status(400).json({ error: 'No students enrolled in this resit exam' });
+      }
+      
+      const enrolledStudents = resitExam?.students || [];
+      console.log(`enrolledStudents : ${enrolledStudents}`);
+      
+      // Check if all students in the results are actually enrolled
+      for (const result of results) {
+        if (!enrolledStudents.includes(result.studentId)) {
+          return res.status(400).json({ 
+            error: 'Invalid student in results',
+            details: `Student ${result.studentId} is not enrolled in this resit exam`
+          });
+        }
+      }
+      for (const student of enrolledStudents) {
+        if (!results.some(r => r.studentId === student)) {
+          return res.status(400).json({ error: `Student ${student} is not enrolled in this resit exam so cannot update their results` });
+        }
+      }
+      
+      
+    }
+
+
+    
+    // Update the results using the datastore function
+    const success = db.updateAllStudentsResitExamResults(resitExamId, results);
+    
+    if (success) {
+      return res.status(200).json({ 
+        message: 'Resit exam results updated successfully for all students',
+        resitExamId,
+        updatedStudents: results.length,
+        results: results.map(r => ({
+          studentId: r.studentId,
+          grade: r.grade,
+          gradeLetter: r.gradeLetter
+        }))
+      });
+    } else {
+      return res.status(500).json({ 
+        error: 'Failed to update resit exam results',
+        details: 'One or more students might not be enrolled in this resit exam'
+      });
+    }
+  } catch (error) {
+    console.error('Error in updateAllStudentsResitExamResults:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
+  }
+}; 
+
+
+
+export const getResitExamAllResults = (req: Request, res: Response) : any => {
+  try {
+    const { resitExamId } = req.params;
+    
+    if (!resitExamId) {
+      return res.status(400).json({ error: 'Resit Exam ID is required' });
+    }
+
+    const results = db.getResitExamAllResults(resitExamId);
+    return res.status(200).json(results);
+  } catch (error) {
+    console.error('Error in getResitExamAllResults:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}; 
+

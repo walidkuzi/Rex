@@ -9,4 +9,12 @@ export interface ResitExamDao {
 
   getResitExamsByInstructorId(instructorIDid: string): ResitExam[];
   getStudentResitExams(id: string): ResitExamResponse[];
+  getStudentAllResitExamResults(studentId: string): { resitExamId: string; grade: number; gradeLetter: string; submittedAt: Date }[];
+  getResitExamAllResults(resitExamId: string): { studentId: string; grade: number; gradeLetter: string; submittedAt: Date }[];
+  getStudentResitExamResults(studentId: string, resitExamId: string): { grade: number; gradeLetter: string; submittedAt: Date } | undefined;
+
+  updateStudentResitExamResults(studentId: string, resitExamId: string, grade: number, gradeLetter: string): boolean;  
+  
+  
+  updateAllStudentsResitExamResults(resitExamId: string, results: { studentId: string; grade: number; gradeLetter: string }[]): boolean;
 }

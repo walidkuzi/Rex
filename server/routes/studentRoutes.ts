@@ -10,8 +10,11 @@ import {
   removeStudentFromResitExam, 
   getStudentResitExams, 
   getStudentCourses,
-  getStudentCourseDetails 
+  getStudentCourseDetails, 
+  getStudentAllResitExamResults,
+  getStudentResitExamResults
 } from '../hundlers/studentHandler';
+
 
 const router = Router();
 
@@ -60,5 +63,11 @@ router.delete('/student-course/:id', removeStudentFromCourse);
 
 // Get a student's resit exams
 router.get('/student/r-exams/:id', getStudentResitExams);
+
+
+router.get('/instructor/resit-results/student/:studentId', getStudentAllResitExamResults); // still not expermenting
+
+router.get('/instructor/resit-results/:studentId/:resitExamId', getStudentResitExamResults); // still not expermenting
+
 
 export default router;

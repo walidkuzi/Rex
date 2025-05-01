@@ -121,7 +121,7 @@ export const getAstudent: RequestHandler<{ id: string }> = (req, res) => {
 };
 
 // delete a student by id and secretaryId
-export const deleteStudent: RequestHandler<{ id: string, secretaryId: string }> = (req, res) => {
+export const deleteStudent: RequestHandler<{ id: string}> = (req, res) => {
   const id = req.params.id;
   const secretaryId = req.body.secretaryId; 
 
@@ -284,7 +284,7 @@ export const addRistExamToStudent: RequestHandler<{ id: string}> = (req, res) : 
 
 
   //! The student must be enrolled in the course for which the resit exam is intended
-  //! And Instructor must be create the resit exam removeResitExamFromInstructor
+  //! And the resit exam must be created by the instructor of the course
 
   // check if the student is enrolled in the course that the resit exam is for
   const course = db.getCourseById(courseId);
@@ -295,8 +295,6 @@ export const addRistExamToStudent: RequestHandler<{ id: string}> = (req, res) : 
   const instructorData = instructor ? db.getInstructorById(instructor) : undefined;
   const isInstCreatedResitExam = instructorData?.resitExams.includes(resitExamId || '');
   
-  console.log(`courseId =======> : ${courseId}`);
-  console.log(`resitExamId =======> : ${resitExamId}`);
   if (!isInstCreatedResitExam) { // if the resitExamId is not correct
     throw new Error("Invalid Resit Exam Id or instructor did not create the resit exam");
   }
@@ -313,12 +311,17 @@ export const addRistExamToStudent: RequestHandler<{ id: string}> = (req, res) : 
     throw new Error("Student already enrolled in the resit exam");
   }
   
+
+
+
+
+
   try {
     const status = db.addRistExamToStudent(id, resitExamId);
     if (status === true) {
       return res.status(200).send('Resit exam added to student successfully');
     } else if (status === false) {
-      return res.status(400).send('Resit exam already in student\'s resit exams');
+      return res.status(400).send('Invalid grade letter - not allowed to take the resit exam');
     } else {
       return res.status(500).send('Error occurred while adding resit exam');
     }
@@ -475,3 +478,41 @@ export const getStudentCourseDetails: RequestHandler<{ id: string }> = (req, res
   }
 };
 
+
+
+export const getStudentResitExamResults =  (req: Request, res: Response) : any => {
+  try {
+    const { studentId, resitExamId } = req.params;
+    
+    if (!studentId || !resitExamId) {
+      return res.status(400).json({ error: 'Student ID and Resit Exam ID are required' });
+    }
+
+    const results = db.getStudentResitExamResults(studentId, resitExamId);
+    
+    if (results) {
+      return res.status(200).json(results);
+    } else {
+      return res.status(404).json({ error: 'No results found' });
+    }
+  } catch (error) {
+    console.error('Error in getStudentResitExamResults:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getStudentAllResitExamResults =  (req: Request, res: Response) : any => {
+  try {
+    const { studentId } = req.params;
+    
+    if (!studentId) {
+      return res.status(400).json({ error: 'Student ID is required' });
+    }
+
+    const results = db.getStudentAllResitExamResults(studentId);
+    return res.status(200).json(results);
+  } catch (error) {
+    console.error('Error in getStudentAllResitExamResults:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
