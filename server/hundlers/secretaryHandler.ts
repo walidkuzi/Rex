@@ -10,7 +10,7 @@ import { Secretary } from '../types';
 export const getCourses: RequestHandler = (req, res) : any => {
   const secretary = req.body.secretaryId;
 
-  // check if the secretary is valid
+  // check if the secretary is provided
   if (!secretary) {
     return res.status(400).json({ error: 'Secretary is required' });
   }
@@ -25,3 +25,22 @@ export const getCourses: RequestHandler = (req, res) : any => {
 };
 
 
+// get all resit exams
+export const getResitExams: RequestHandler = (req, res) : any => {
+  const secretary = req.body.secretaryId;
+
+  // check if the secretary is provided
+  if (!secretary) {
+    return res.status(400).json({ error: 'Secretary is required' });
+  }
+  // check if the secretary is authorized
+  const authorized = db.getSecretaryById(secretary);
+  if (!authorized) {
+    return res.status(401).json({ error: 'Unauthorized secretary id' });
+  }
+  // get the resit exams
+  const resitExams = db.getResitExams();
+  res.json(resitExams);
+};
+
+  

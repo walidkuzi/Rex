@@ -111,18 +111,19 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return this.secretary.find(secretary => secretary.id === id);
   }
 
-  getSecretaryByEspecialId(id: string): Secretary | undefined {
-    return this.secretary.find(secretary => secretary.especialId === id);
-  }
 
   getSecretaryByEmail(email: string): Secretary | undefined {
     return this.secretary.find(secretary => secretary.email === email);
   }
-
+ // list all courses
   getCourses(): Course[] {
     return this.courses;
   }
 
+  // list all resit exams
+  getResitExams(): ResitExam[] {
+    return this.resitExams;
+  }
 
 
 
