@@ -1,7 +1,7 @@
 import { Course, Instructor, Secretary, Student } from '../types';
 
 export interface CourseDao {
-  createCourse(courseId: string, cName: string, department: string  , secretaryId: string): void;
+  createCourse(courseId: string, resitExamId: string, cName: string, department: string  , secretaryId: string): void;
 
   getCourseById(id: string): Course | undefined;
   getCourseInstructor(id: string): string | undefined;

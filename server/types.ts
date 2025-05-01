@@ -48,7 +48,7 @@ export interface Student extends User {
 export interface Course {
   id: string;
   name: string;
-  resitExamId: string | undefined;
+  resitExamId: string;
   department: string;
   students: string[];  // Array of student IDs
   instructor: string | undefined; // only one instructor

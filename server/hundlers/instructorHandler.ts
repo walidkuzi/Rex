@@ -120,9 +120,6 @@ export const getInstructor: RequestHandler<{ id: string }> = (req, res) : any =>
 };
 
 
-
-
-
 // delete an instructor
 export const deleteInstructor: RequestHandler<{ id: string}> = (req, res) => {
   const id = req.params.id;
@@ -144,7 +141,6 @@ export const deleteInstructor: RequestHandler<{ id: string}> = (req, res) => {
   db.deleteInstructor(id);
   res.status(200).json({ message: 'Instructor deleted successfully' });
 };
-
 
 // update instructor information
 export const updateInstructorInfo: RequestHandler<{ id: string }> = (req, res) => {
@@ -176,7 +172,6 @@ export const updateInstructorInfo: RequestHandler<{ id: string }> = (req, res) =
   }
 
 };
-
 
 
 // assigning instructor to a course
@@ -368,104 +363,124 @@ export const unassignInstructorFromCourse: RequestHandler = (req, res) : any => 
 };
 
 
-
-// add a resit exam to an instructor
-export const addResitExamToInstructor: RequestHandler<{ id: string }> = (req, res) : any => {
+// create a resit exam
+export const createResitExam: RequestHandler<{ id: string }> = (req, res) : any => {
   const { id } = req.params; // instructor id
-  const { secretaryId, resitExamId } = req.body;
+  const { 
+    courseId,
+    lettersAllowed,
+    examDate,
+    deadline,
+    location
+  } = req.body;
 
-  if (!secretaryId || !resitExamId || !id) {
+  // Validate required fields
+  if (!courseId || !lettersAllowed || !examDate || !deadline || !location) {
     return res.status(400).json({
       success: false,
       error: 'Missing required fields',
       missingFields: {
-        id: !id,
-        secretaryId: !secretaryId,
-        resitExamId: !resitExamId
+        courseId: !courseId,
+        lettersAllowed: !lettersAllowed,
+        examDate: !examDate,
+        deadline: !deadline,
+        location: !location,
       }
     });
   }
 
+  
+
   try {
-    // Get all required entities
+    // Validate instructor exists
     const instructor = db.getInstructorById(id);
-    const secretary = db.getSecretaryById(secretaryId);
-    const resitExam = db.getResitExam(resitExamId);
-
-    // Validate all entities exist
-    if (!secretary) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized Secretary ID'
-      });
-    }
-
     if (!instructor) {
       return res.status(404).json({
         success: false,
-        error: 'Instructor not found',
-        id: id
+        error: 'Instructor not found'
       });
     }
 
-    if (!resitExam) {
-      return res.status(404).json({
-        success: false,
-        error: 'Resit exam not found',
-        resitExamId: resitExamId
-      });
-    }
-
-    // Check if the resit exam is already in the instructor's resit exams
-    if (instructor.resitExams.includes(resitExamId)) {
+    // Validate instructor is assigned to the course
+    if (!instructor.courses.includes(courseId)) {
       return res.status(400).json({
         success: false,
-        error: "Resit exam already in instructor's resit exams",
-        id: id,
-        resitExamId: resitExamId
+        error: 'Instructor not assigned to this course'
       });
     }
 
-    // Add the resit exam to the instructor's resit exams
-    const status = db.addResitExamToInstructor(id, resitExamId);
-    if (status === true) {
-      // Get the updated instructor to return the latest data
-      const updatedInstructor = db.getInstructorById(id);
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Resit exam added to instructor successfully',
-        instructor: {
-          id: updatedInstructor?.id,
-          name: updatedInstructor?.name,
-          resitExams: updatedInstructor?.resitExams
-        },
-        resitExam: {
-          id: resitExam.id,
-          name: resitExam.name
-        }
-      });
-    } else if (status === false) {
+    // Get the course to extract resitExamId
+    const course = db.getCourseById(courseId);
+    if (!course || !course.resitExamId) {
       return res.status(400).json({
         success: false,
-        error: 'Resit exam already in instructor\'s resit exams'
-      });
-    } else {
-      return res.status(500).json({
-        success: false,
-        error: 'Error occurred while adding resit exam'
+        error: 'Course not found or does not have a resit exam ID'
       });
     }
+
+    // get the name and department from the course that the resit exam is for
+    const name = course?.name;
+    const department = course?.department;
+
+
+    // get the resitExamId from the course to use it as the id for the resit exam
+    //! so every course has a resit exam id we will use it as the id for the resit exam
+    const resitExamId = course?.resitExamId;
+
+    // Create the resit exam using the resitExamId from the course
+    db.createResitExam(
+      resitExamId,
+      courseId,
+      name,
+      department,
+      id, // instructorId
+      lettersAllowed,
+      new Date(examDate),
+      new Date(deadline),
+      location
+    );
+
+    // Get the created resit exam using the resitExamId from the course
+    const createdResitExam = db.getResitExam(course.resitExamId);
+    if (!createdResitExam) {
+      throw new Error('Failed to create resit exam');
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Resit exam created successfully',
+      resitExam: {
+        id: createdResitExam.id,
+        name: createdResitExam.name,
+        courseId: createdResitExam.courseId,
+        department: createdResitExam.department,
+        examDate: createdResitExam.examDate,
+        deadline: createdResitExam.deadline,
+        location: createdResitExam.location
+      }
+    });
   } catch (error) {
-    console.error('Error adding resit exam to instructor:', error);
+    console.error('Error creating resit exam:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized')) {
+        return res.status(403).json({
+          success: false,
+          error: error.message
+        });
+      } else if (error.message.includes('already taken')) {
+        return res.status(409).json({
+          success: false,
+          error: error.message
+        });
+      }
+    }
     return res.status(500).json({
       success: false,
-      error: 'Error adding resit exam to instructor',
+      error: 'Error creating resit exam',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
-
 
 // unenroll instructor from course
 export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId: string }> = (req, res) : any => {
@@ -506,32 +521,36 @@ export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId
       return res.status(400).send("Instructor not assigned to the course");
     }
 
-    // ✅ Perform the core action: Remove the course from the instructor
-    db.unEnrollInstructorFromRExam(id, courseId);
+    // Perform the core action: Remove the course from the instructor's courses
+    db.unassignInstructorFromCourse(id, courseId);
 
-    // ✅ Respond with success
+    //  Respond with success
     return res.status(200).send('Course removed from instructor successfully');
   } catch (error) {
-    // ✅ Catch and handle unexpected errors safely
+    //  Catch and handle unexpected errors safely
     console.error(error); // Optional: log for server-side debugging
     return res.status(500).send('Error removing course from instructor');
   }
 };
 
 
+// Delete a resit exam
+export const deleteResitExam: RequestHandler<{ id: string}> = (req, res) : any => {
+  const { id} = req.params;
+  const { courseId } = req.body;
 
-// remove a resit exam from an instructor
-export const unEnrollInstructorFromRExam: RequestHandler<{ id: string, resitExamId: string }> = (req, res) : any => {
-  const { id, resitExamId } = req.params;
-  const { secretaryId } = req.body;
+    // Get the course to extract resitExamId
+    const course = db.getCourseById(courseId);
+    if (!course || !course.resitExamId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Course not found or does not have a resit exam ID'
+      });
+    }
 
-  if (!secretaryId) {
-    return res.status(400).send('Missing required field: secretaryId');
-  }
 
   const instructor = db.getInstructorById(id);
-  const secretary = db.getSecretaryById(secretaryId);
-  const resitExam = db.getResitExam(resitExamId);
+  const resitExamId = course?.resitExamId;
 
   try {
     // Check if the instructor exists
@@ -539,13 +558,9 @@ export const unEnrollInstructorFromRExam: RequestHandler<{ id: string, resitExam
       return res.status(404).send('Instructor not found');
     }
 
-    // Check if the secretary is authorized
-    if (!secretary) {
-      return res.status(403).send('Unauthorized Secretary ID');
-    }
 
     // Check if the resit exam exists
-    if (!resitExam) {
+    if (!resitExamId) {
       return res.status(404).send('Resit exam not found');
     }
 
@@ -555,7 +570,7 @@ export const unEnrollInstructorFromRExam: RequestHandler<{ id: string, resitExam
     }
 
     // Remove the resit exam from the instructor's resit exams
-    db.unEnrollInstructorFromRExam(id, resitExamId);
+    db.deleteResitExam(id, instructor.id, resitExamId);
     return res.status(200).send('Resit exam removed from instructor successfully');
   } catch (error) {
     if (error instanceof Error) {
@@ -627,4 +642,114 @@ export const getInstructorCourseDetails = (req: Request, res: Response) : any =>
   }
 };
 
-// get instructor's resit exams
+// update a resit exam
+export const updateResitExam: RequestHandler<{ id: string }> = (req, res) : any => {
+  const { id } = req.params; // instructor id
+  const { 
+    courseId,
+    lettersAllowed,
+    examDate,
+    deadline,
+    location
+  } = req.body;
+
+  // Validate required fields
+  if (!courseId || !lettersAllowed || !examDate || !deadline || !location) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields',
+      missingFields: {
+        courseId: !courseId,
+        lettersAllowed: !lettersAllowed,
+        examDate: !examDate,
+        deadline: !deadline,
+        location: !location,
+      }
+    });
+  }
+
+  try {
+    // Validate instructor exists
+    const instructor = db.getInstructorById(id);
+    if (!instructor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instructor not found'
+      });
+    }
+
+    // Validate instructor is assigned to the course
+    if (!instructor.courses.includes(courseId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Instructor not assigned to this course'
+      });
+    }
+
+    // Get the course to extract resitExamId and other details
+    const course = db.getCourseById(courseId);
+    if (!course || !course.resitExamId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Course not found or does not have a resit exam ID'
+      });
+    }
+
+    // get the name and department from the course
+    const name = course.name;
+    const department = course.department;
+    const resitExamId = course.resitExamId;
+
+    // Update the resit exam
+    db.updateResitExam(
+      resitExamId,
+      name,
+      id,
+      department,
+      lettersAllowed,
+      new Date(examDate),
+      new Date(deadline),
+      location
+    );
+
+    // Get the updated resit exam
+    const updatedResitExam = db.getResitExam(resitExamId);
+    if (!updatedResitExam) {
+      throw new Error('Failed to update resit exam');
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resit exam updated successfully',
+      resitExam: {
+        id: updatedResitExam.id,
+        name: updatedResitExam.name,
+        courseId: updatedResitExam.courseId,
+        department: updatedResitExam.department,
+        examDate: updatedResitExam.examDate,
+        deadline: updatedResitExam.deadline,
+        location: updatedResitExam.location
+      }
+    });
+  } catch (error) {
+    console.error('Error updating resit exam:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized')) {
+        return res.status(403).json({
+          success: false,
+          error: error.message
+        });
+      } else if (error.message.includes('already taken')) {
+        return res.status(409).json({
+          success: false,
+          error: error.message
+        });
+      }
+    }
+    return res.status(500).json({
+      success: false,
+      error: 'Error updating resit exam',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};

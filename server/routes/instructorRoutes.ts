@@ -6,11 +6,12 @@ import {
   updateInstructorInfo,
   assignInstructorToCourse,
   unassignInstructorFromCourse,
-  addResitExamToInstructor,
-  unEnrollInstructorFromRExam,
+  deleteResitExam,
   getInstructorCourses,
   getInstructorResitExams,
-  getInstructorCourseDetails
+  getInstructorCourseDetails,
+  createResitExam,
+  updateResitExam
 } from '../hundlers/instructorHandler';
 
 const router = express.Router();
@@ -22,21 +23,24 @@ const router = express.Router();
   More specific routes (like `/instructor/:id/courses/:courseId`) must come
   BEFORE general ones (like `/instructor/:id`) to avoid incorrect handler calls.  */
 
-// Instructor routes
+// Instructor routes - Secretary
 router.post('/instructor', createInstructor);
-router.put('/instructor/:id', updateInstructorInfo);
-router.delete('/instructor/:id', deleteInstructor);
 router.get('/instructor/:id', getInstructor);
+router.delete('/instructor/:id', deleteInstructor);
+router.put('/instructor/:id', updateInstructorInfo);
 
-// Instructor course management
+// Instructor course management - Secretary
 router.post('/instructor/course/:id', assignInstructorToCourse);
 router.delete('/instructor/course/:id', unassignInstructorFromCourse);
-router.get('/instructor/courses/:id', getInstructorCourses);
-router.get('/instructor/course-details/:id', getInstructorCourseDetails);
 
-// Instructor resit exam management
-router.post('/instructor/:id/resit-exams/:resitExamId', addResitExamToInstructor);
-router.delete('/instructor/:id/resit-exams/:resitExamId', unEnrollInstructorFromRExam);
-router.get('/instructor/resitexams/:id', getInstructorResitExams);
+// Instructor course management - Instructor
+router.get('/instructor/courses/:id', getInstructorCourses);
+router.get('/instructor/c-details/:id', getInstructorCourseDetails);
+
+// Instructor resit exam management - Instructor
+router.post('/instructor/r-exam/:id', createResitExam);
+router.put('/instructor/r-exam/:id', updateResitExam);
+router.delete('/instructor/r-exam/:id', deleteResitExam);
+router.get('/instructor/r-exams/:id', getInstructorResitExams);
 
 export default router;

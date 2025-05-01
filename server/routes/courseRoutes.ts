@@ -18,8 +18,8 @@ router.put('/course/:id', updateCourse);
 router.delete('/course/:id', deleteCourse);
 
 // Course relationships and statistics
-router.get('/course/:id/students', getCourseStudents);
-router.get('/course/:id/instructor', getCourseInstructor);
-router.get('/course/:id/statistics', getCourseStatistics);
+router.get('/course/students/:id', getCourseStudents);
+router.get('/course/instructor/:id', getCourseInstructor);
+router.get('/course/statistics/:id', getCourseStatistics);
 
 export default router; 

@@ -83,7 +83,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     name: "Introduction to Software Engineering",
     resitExamId: "resit-001",
     department: "Software Engineering",
-    students: ["001", "002"], // must be added not created | added from Course students
+    students: ["001", "002"], // must be added not created 
     instructor: "inst-001",
     createdBy: "sec-001",
     createdAt: new Date(),
@@ -131,8 +131,47 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
   }
 
   deleteStudent(id: string, secretary: string): boolean {
+    // Get the student to be deleted
+    const student = this.getAstudent(id);
+    if (!student) {
+      return false;
+    }
 
+    // Remove student from all enrolled courses
+    student.courses.forEach(courseId => {
+      const course = this.getCourseById(courseId);
+      if (course) {
+        // Remove student from course's student list
+        const studentIndex = course.students.indexOf(id);
+        if (studentIndex !== -1) {
+          course.students.splice(studentIndex, 1);
+        }
 
+        // If course has a resit exam, remove student from that resit exam
+        if (course.resitExamId) {
+          const resitExam = this.getResitExam(course.resitExamId);
+          if (resitExam) {
+            const resitExamIndex = resitExam.students.indexOf(id);
+            if (resitExamIndex !== -1) {
+              resitExam.students.splice(resitExamIndex, 1);
+            }
+          }
+        }
+      }
+    });
+
+    // Remove student from all resit exams
+    student.resitExams.forEach(resitExamId => {
+      const resitExam = this.getResitExam(resitExamId);
+      if (resitExam) {
+        const studentIndex = resitExam.students.indexOf(id);
+        if (studentIndex !== -1) {
+          resitExam.students.splice(studentIndex, 1);
+        }
+      }
+    });
+
+    // Finally, delete the student
     const index = this.student.findIndex(student => student.id === id);
     if (index !== -1) {
       this.student.splice(index, 1);
@@ -195,13 +234,25 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     const student = this.getAstudent(studentId);
     const resitExam = this.getResitExam(resitExamId);
     
+    console.log(`student exams =======> : ${student?.resitExams}`);
+    console.log(`student courses =======> : ${student?.courses}`);
+    
     // Validate both exist
     if (!student || !resitExam) {
+      console.log('Validation failed:', { studentExists: !!student, resitExamExists: !!resitExam });
       return false;
     }
     
+    // Ensure resitExams array exists
+    if (!student.resitExams) {
+      student.resitExams = [];
+    }
+    
     // Check if the relationship already exists
-    if (student.resitExams.includes(resitExamId)) {
+    const isAlreadyEnrolled = student.resitExams.includes(resitExamId);
+    console.log(`Is already enrolled =======> : ${isAlreadyEnrolled}`);
+    
+    if (isAlreadyEnrolled) {
       return false; // Already enrolled
     }
     
@@ -210,7 +261,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     
     // Add student to resit exam's students list 
     resitExam.students.push(studentId);
-    
     
     return true;
   }
@@ -351,17 +401,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
 
 
 
-//? Instructor DAO implementation
-
-  // getStudentResitExams(id: string): string[] | undefined {
-  //   const student = this.getAstudent(id);
-  //   if (student) {
-  //     return student.resitExams;
-  //   }
-  //   return undefined;
-  // }
- 
-
 
 
 
@@ -375,7 +414,35 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
   }
 
   deleteInstructor(id: string): void {
+    // Get the instructor to be deleted
+    const instructor = this.getInstructorById(id);
+    if (!instructor) {
+      return;
+    }
 
+    // Remove instructor from all assigned courses
+    instructor.courses.forEach(courseId => {
+      const course = this.getCourseById(courseId);
+      if (course && course.instructor === id) {
+        // Remove instructor from course
+        course.instructor = undefined;
+        course.updatedAt = new Date();
+      }
+    });
+
+    // Remove instructor from all assigned resit exams
+    instructor.resitExams.forEach(resitExamId => {
+      const resitExam = this.getResitExam(resitExamId);
+      if (resitExam) {
+        // Remove instructor from resit exam's instructors list
+        const instructorIndex = resitExam.instructors.indexOf(id);
+        if (instructorIndex !== -1) {
+          resitExam.instructors.splice(instructorIndex, 1);
+        }
+      }
+    });
+
+    // Finally, delete the instructor
     const index = this.instructor.findIndex(instructor => instructor.id === id);
     if (index !== -1) {
       this.instructor.splice(index, 1);
@@ -479,28 +546,36 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return true;
   }
 
-  unEnrollInstructorFromRExam(id: string, courseId: string): void {
-  //  Trim input to avoid issues caused by leading/trailing whitespace
-  const cleanId = id.trim();
-  const cleanCourseId = courseId.trim();
 
-  // Retrieve instructor by ID
-  const instructor = this.getInstructorById(cleanId);
-
-  // Proceed only if instructor exists and their courses property is a valid array
-  if (instructor && Array.isArray(instructor.courses)) {
-
-    //  Find the index of the course to be removed from the courses list
-    const index = instructor.courses.indexOf(cleanCourseId);
-
-    // Only remove if the course exists in the array
-    if (index !== -1) {
-      instructor.courses.splice(index, 1); // Removes the course at the found index
+  assignInstructorToCourse(instructorId: string, courseId: string): boolean {
+    // Get the instructor and course
+    const instructor = this.getInstructorById(instructorId);
+    const course = this.getCourseById(courseId);
+    
+    // Validate both exist
+    if (!instructor || !course) {
+      return false;
     }
+    
+    // Check if the course already has an instructor
+    if (course.instructor) {
+      return false; // Course already has an instructor
+    }
+    
+    // Check if the instructor is already assigned to this course
+    if (instructor.courses.includes(courseId)) {
+      return false; // Already assigned
+    }
+    
+    // Add course to instructor's course list
+    instructor.courses.push(courseId);
+    
+    // Update the course with the new instructor
+    course.instructor = instructorId;
+    course.updatedAt = new Date();
+    
+    return true;
   }
-
-}
-
 
 
 
@@ -520,14 +595,14 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
 
 
 //? Course DAO implementation
-  createCourse(courseId: string, cName: string, department: string  , secretaryId: string): void {
+  createCourse(courseId: string, resitExamId: string, cName: string, department: string  , secretaryId: string): void {
 
     
     // Create a new course object with the provided parameters
     const newCourse: Course = {
       id: courseId,
       name: cName,
-      resitExamId: undefined,
+      resitExamId: resitExamId,
       department: department,
       createdBy: secretaryId,
       students: [],              // must be added not created | added from Course students
@@ -613,19 +688,13 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
 
 
 //? ResitExam DAO implementation
-  createResitExam(id: string, courseId: string, name: string, department: string, instructorId: string, lettersAllowed: string[], examDate: Date, deadline: Date, location: string, secretaryId: string): void {
-    // check if the secretary Id is extists and authorized
-    if (this.getSecretaryById(secretaryId) === undefined) {
-      throw new Error("Unauthorized Secretary ID");
-    }
+  createResitExam(resitExamId: string, courseId: string, name: string, department: string, instructorId: string, lettersAllowed: string[], examDate: Date, deadline: Date, location: string): void {
+
     // check if the instructor Id is extists
     if (this.getInstructorById(instructorId) === undefined) {
       throw new Error("Instructor ID not found");
     }
-    // check if the ResitExam Id is already taken
-    if (this.resitExams.some(resitExam => resitExam.id === id)) {
-      throw new Error("ResitExam Id already taken");
-    }
+
     // check if the ResitExam Date not taken
     if (this.resitExams.some(resitExam => resitExam.examDate.getTime() === examDate.getTime())) {
       throw new Error("ResitExam Date already taken");
@@ -654,15 +723,13 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     if (instructorId === undefined) {
       throw new Error("ResitExam instructor is empty");
     }
-    // check if the ResitExam ID is not empty
-    if (id === undefined) {
-      throw new Error("ResitExam ID is empty");
-    }
-    
+
+    // resitExamId is the id of the resit exam
+    const id = resitExamId;
     
     // Create a complete ResitExam object with all required properties
     const completeResitExam: ResitExam = {
-      id,
+      id , // Ensure id is never undefined by providing a fallback
       name,
       courseId,
       department,
@@ -676,33 +743,59 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
       createdBy: instructorId,
       updatedAt: new Date() 
     };
-    
+
+    // add the resit exam to the resit exams list
     this.resitExams.push(completeResitExam);
+
+    // add the resit exam to the instructor resit exams list
+    this.addResitExamToInstructor(instructorId, resitExamId);
   }
 
   getResitExam(id: string): ResitExam | undefined {
-    
+    console.log(`id =======> : ${id}`);
     return this.resitExams.find(resitExam => resitExam.id === id);
   }
 
-  deleteResitExam(id: string, instructorID: string, secretaryId: string): void {
-    // check if the secretary Id is extists and authorized
-    if (this.getSecretaryById(secretaryId) === undefined) {
-      throw new Error("Unauthorized Secretary ID");
+  deleteResitExam(id: string, instructorID: string, resitExamId: string): void {
+    // Find the resit exam
+    const resitExam = this.getResitExam(resitExamId);
+    if (!resitExam) {
+      throw new Error('Resit exam not found');
     }
-    const index = this.resitExams.findIndex(resitExam => resitExam.id === id && resitExam.instructors.includes(instructorID));
-    if (index !== -1) {
-      this.resitExams.splice(index, 1);
+
+    // Remove resit exam from instructor's resit exams list
+    const instructor = this.getInstructorById(instructorID);
+    if (instructor) {
+      const index = instructor.resitExams.indexOf(resitExamId);
+      if (index !== -1) {
+        instructor.resitExams.splice(index, 1);
+      }
+    }
+
+    // Remove resit exam from all students resit exams lists
+    resitExam.students.forEach(studentId => {
+      const student = this.getAstudent(studentId);
+      if (student) {
+        const studentResitExamIndex = student.resitExams.indexOf(resitExamId);
+        if (studentResitExamIndex !== -1) {
+          student.resitExams.splice(studentResitExamIndex, 1);
+        }
+      }
+    });
+
+    // delete the resit exam from the resit exams list
+    const resitExamIndex = this.resitExams.findIndex(exam => exam.id === resitExamId);
+    if (resitExamIndex !== -1) {
+      this.resitExams.splice(resitExamIndex, 1);
     }
   }
 
-  updateResitExam(id: string, name: string, instructorID: string, department: string, Letters: string[], examDate: Date, deadline: Date, location: string, secretaryId: string): void {
-    // 1. Authorization Check: Ensure the secretary is valid
-    if (!this.getSecretaryById(secretaryId)) { // Use direct check
-      throw new Error("Unauthorized Secretary ID");
-    }
+  updateResitExam(resitExamId: string, name: string, instructorID: string, department: string, Letters: string[], examDate: Date, deadline: Date, location: string): void {
 
-    // 2. Find the Exam to Update
+
+    const id = resitExamId;
+
+    //  Find the Exam to Update
     const index = this.resitExams.findIndex(resitExam => resitExam.id === id);
     if (index === -1) {
       throw new Error(`Update failed: ResitExam with ID ${id} not found.`);
@@ -710,7 +803,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     // Get a reference to the original exam object
     const originalExam = this.resitExams[index];
 
-    // 3. Validate Inputs (New Values)
+    //  Validate Inputs (New Values)
     // Check if the NEW instructor Id exists
     // IMPORTANT: Using direct array find due to potential recursion in your getInstructorById. Fix getInstructorById!
     if (!this.instructor.find(inst => inst.id === instructorID)) {
@@ -727,36 +820,13 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
         throw new Error(`Update failed: Another ResitExam (ID: ${conflictingExam.id}) is already scheduled at location '${location}' for the specified date/time.`);
     }
 
-    // Check if other required fields are provided and seem valid
-    if (!name) { // Check for null/undefined/empty string
-        throw new Error("Update failed: ResitExam name cannot be empty");
-    }
-    if (!department) { // Check for null/undefined/empty string
-        throw new Error("Update failed: ResitExam department cannot be empty");
-    }
-    if (!Letters || Letters.length === 0) { // Check for null/undefined/empty array
-        throw new Error("Update failed: ResitExam lettersAllowed cannot be empty");
-    }
-    if (!examDate) { // Check for null/undefined Date object
-        throw new Error("Update failed: ResitExam examDate cannot be empty");
-    }
-    if (!deadline) { // Check for null/undefined Date object
-        throw new Error("Update failed: ResitExam deadline cannot be empty");
-    }
-    if (!location) { // Check for null/undefined/empty string
-        throw new Error("Update failed: ResitExam location cannot be empty");
-    }
-    // instructorID validity checked above
-    // id validity checked by findIndex
 
 
-    // 4. Perform the Update
+
+    //  Perform the Update
     // Create the updated exam object using spread syntax and new values
     this.resitExams[index] = {
-      ...originalExam, // Keep unchanged fields (students, createdAt, createdBy, addedAt etc.)
-      name: name,               // Update name
-      instructors: [instructorID], // Update instructor as an array
-      department: department,   // Update department
+      ...originalExam, // Keep unchanged fields (students, createdAt, createdBy, addedAt, name, department, etc.)
       lettersAllowed: Letters,  // Update allowed letters
       examDate: examDate,       // Update exam date
       deadline: deadline,       // Update deadline
@@ -764,8 +834,8 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
       updatedAt: new Date()     // Add or update the 'updatedAt' timestamp
     };
 
-    // The logic block you had at the end finding the index again and only updating instructor
-    // was redundant and incorrect, it has been removed and incorporated correctly above.
+
+
   }
 
   getResitExamsByInstructorId( instructorId: string): ResitExam[] {
@@ -798,36 +868,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return this.resitExams.filter(resitExam => resitExam.instructors.includes(id));
   }
 
-  assignInstructorToCourse(instructorId: string, courseId: string): boolean {
-    // Get the instructor and course
-    const instructor = this.getInstructorById(instructorId);
-    const course = this.getCourseById(courseId);
-    
-    // Validate both exist
-    if (!instructor || !course) {
-      return false;
-    }
-    
-    // Check if the course already has an instructor
-    if (course.instructor) {
-      return false; // Course already has an instructor
-    }
-    
-    // Check if the instructor is already assigned to this course
-    if (instructor.courses.includes(courseId)) {
-      return false; // Already assigned
-    }
-    
-    // Add course to instructor's course list
-    instructor.courses.push(courseId);
-    
-    // Update the course with the new instructor
-    course.instructor = instructorId;
-    course.updatedAt = new Date();
-    
-    return true;
-  }
-
+ 
   unassignInstructorFromCourse(courseId: string, intsId : string): boolean {
     // Get the course
     const course = this.getCourseById(courseId);
