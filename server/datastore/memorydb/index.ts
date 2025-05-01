@@ -125,6 +125,15 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return this.resitExams;
   }
 
+  // list all students
+  getStudents(): Student[] {
+    return this.student;
+  }
+
+  // list all instructors
+  getInstructors(): Instructor[] {
+    return this.instructor;
+  }
 
 
 
