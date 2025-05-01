@@ -4,7 +4,7 @@
   "description": "Rex web app - SPM",
   "main": "index.ts",
   "scripts": {
-    "start": "nodemon index.ts"
+    "start": "nodemon server.ts"
   },
   "repository": {
     "type": "git",
