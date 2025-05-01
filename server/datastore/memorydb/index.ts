@@ -119,7 +119,9 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return this.secretary.find(secretary => secretary.email === email);
   }
 
-
+  getCourses(): Course[] {
+    return this.courses;
+  }
 
 
 

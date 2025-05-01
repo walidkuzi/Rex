@@ -5,6 +5,7 @@ import { errorHandler, RequestMiddleware } from './middleware/requestMiddleware'
 import studentRoutes from './routes/studentRoutes';
 import instructorRoutes from './routes/instructorRoutes';
 import courseRoutes from './routes/courseRoutes';
+import secretaryRoutes from './routes/secretaryRoutes';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(RequestMiddleware);
 app.use('/', studentRoutes);
 app.use('/', instructorRoutes);
 app.use('/', courseRoutes);
+app.use('/', secretaryRoutes);
 
 
 // general error handler for all errors
