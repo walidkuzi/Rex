@@ -65,9 +65,9 @@ router.delete('/student-course/:id', removeStudentFromCourse);
 router.get('/student/r-exams/:id', getStudentResitExams);
 
 
-router.get('/instructor/resit-results/student/:studentId', getStudentAllResitExamResults); // still not expermenting
+router.get('/instructor/resit-results/student/:studentId', getStudentAllResitExamResults); // still not tested
 
-router.get('/instructor/resit-results/:studentId/:resitExamId', getStudentResitExamResults); // still not expermenting
+router.get('/instructor/resit-results/:studentId/:resitExamId', getStudentResitExamResults); // still not tested
 
 
 export default router;

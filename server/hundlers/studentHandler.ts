@@ -480,6 +480,9 @@ export const getStudentCourseDetails: RequestHandler<{ id: string }> = (req, res
 
 
 
+
+
+// still not tested
 export const getStudentResitExamResults =  (req: Request, res: Response) : any => {
   try {
     const { studentId, resitExamId } = req.params;
@@ -501,6 +504,7 @@ export const getStudentResitExamResults =  (req: Request, res: Response) : any =
   }
 };
 
+// still not tested
 export const getStudentAllResitExamResults =  (req: Request, res: Response) : any => {
   try {
     const { studentId } = req.params;
