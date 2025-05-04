@@ -29,9 +29,9 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     password: "password123",
     courses: ["course-101"],
     resitExams: ["resit-001"],
-    createdAt: new Date(),
     createdBy: "admin123",
-    updatedAt: new Date()
+    createdAt: new Date(),
+    updatedAt: null
   },
   {
     id: "002",
@@ -40,9 +40,9 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     password: "pass123",
     courses: ["course-101"],
     resitExams: ["resit-001"],
-    createdAt: new Date(),
     createdBy: "admin14",
-    updatedAt: new Date()
+    createdAt: new Date(),
+    updatedAt: null
 
   }
 ];

@@ -1,0 +1,4 @@
+database.sql consist queries to create the tables and triggers (use vscode to review it)
+integrityTest.sql consisty Data integrity Test cases for tables (use vscode to review it)
+RexDb.db is the Database file also Ai generated Data is Inserted 
+Rexdb_erd.png is the EERD diagram for the Database
