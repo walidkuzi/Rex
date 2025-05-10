@@ -1,5 +1,5 @@
 import { Datastore } from "..";
-import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, StudentCourseDetails, InstructorCourseDetails, ResitExamResponse } from "../../types";
+import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, StudentCourseDetails, InstructorCourseDetails, ResitExamResponse, CourseWithResitExam } from "../../types";
 
   export class inMemoryDatastore implements Datastore {
 
@@ -476,8 +476,8 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
       const resitExam = this.getResitExam(resitExamId);
       if (resitExam) {
         // Remove instructor from resit exam's instructors list
-        const instructorIndex = resitExam.instructors.indexOf(id);
-        if (instructorIndex !== -1) {
+        const instructorIndex = resitExam.instructors?.indexOf(id);
+        if (instructorIndex !== undefined && instructorIndex !== -1 && resitExam.instructors) {
           resitExam.instructors.splice(instructorIndex, 1);
         }
       }
@@ -580,8 +580,8 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     instructor.resitExams.push(resitExamId);
     
     // Add instructor to resit exam's instructors list if not already there
-    if (!resitExam.instructors.includes(instructorId)) {
-      resitExam.instructors.push(instructorId);
+    if (!resitExam.instructors?.includes(instructorId)) {
+      resitExam.instructors?.push(instructorId);
     }
     
     return true;
@@ -622,8 +622,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
 
 
 
-
-
 //? Course DAO implementation
   // removeResitExamFromInstructor(id: string, resitExamId: string): boolean {
   //   const instructor = this.getInstructorById(id);
@@ -656,10 +654,20 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
   }
 
   // all course properties
-  getCourseById(id: string): Course | undefined {
+  getCourseById(id: string): CourseWithResitExam | undefined {
+    // get course resit exam id
+    const course = this.courses.find(course => course.id === id);
+    if (!course) {
+      return undefined;
+    }
+    const resitExam = this.getResitExam(course.resitExamId);
 
     // return the course object with the matching ID 
-    return this.courses.find(course => course.id === id);
+    // and resit exam letters allowed if exists
+    return {
+      ...course,
+      resitExamLettersAllowed: resitExam?.lettersAllowed || []
+    };
   }
 
   // only instructor id
@@ -848,29 +856,64 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
 
 
 //? ResitExam DAO implementation
-  createResitExam(resitExamId: string, courseId: string, name: string, department: string, instructorId: string, lettersAllowed: string[], examDate: Date, deadline: Date, location: string): void {
+  createResitExamBySecretary(secr_id: string, resitExamId: string, courseId: string, examDate: Date, deadline: Date, location: string): void {
+
+
+
+    // check if the location is avilable and not empty
+    if (this.resitExams.some(resitExam => resitExam.location === location)) {
+      throw new Error("ResitExam location already taken");
+    }
+
+    // check if the ResitExam deadline is not empty
+    if (deadline === undefined) {
+      throw new Error("ResitExam deadline is empty");
+    }
+
+    // resitExamId is the id of the resit exam
+    const id = resitExamId;
+    
+    // Create a complete ResitExam object with all required properties
+    const completeResitExam: ResitExam = {
+      id , // Ensure id is never undefined by providing a fallback
+      courseId,
+      name: undefined,
+      department: undefined,
+      instructors: undefined,
+      lettersAllowed: undefined,
+      examDate,
+      deadline,
+      location,
+      students: [],
+      createdAt: new Date(),
+      createdBy:secr_id,
+      updatedAt: new Date() 
+    };
+
+    // add the resit exam to the resit exams list
+    this.resitExams.push(completeResitExam);
+
+    const instructor = this.getCourseInstructor(courseId);
+    if (!instructor) {
+      throw new Error("Course instructor not found");
+    }
+
+    // add the resit exam to the instructor resit exams list
+    this.addResitExamToInstructor(instructor, resitExamId);
+  }
+  createResitExamByInstuctor(resitExamId: string, courseId: string, name: string, department: string, instructorId: string, lettersAllowed: string[]): void {
 
     // check if the instructor Id is extists
     if (this.getInstructorById(instructorId) === undefined) {
       throw new Error("Instructor ID not found");
     }
 
-    // check if the ResitExam Date not taken
-    if (this.resitExams.some(resitExam => resitExam.examDate.getTime() === examDate.getTime())) {
-      throw new Error("ResitExam Date already taken");
-    }
-    // check if the location is avilable and not empty
-    if (this.resitExams.some(resitExam => resitExam.location === location)) {
-      throw new Error("ResitExam location already taken");
-    }
+
     // check if the ResitExam lettersAllowed is not empty
     if (lettersAllowed.length === 0) {
       throw new Error("ResitExam lettersAllowed is empty");
     }
-    // check if the ResitExam deadline is not empty
-    if (deadline === undefined) {
-      throw new Error("ResitExam deadline is empty");
-    }
+
     // check if the ResitExam department is not empty
     if (department === undefined) {
       throw new Error("ResitExam department is empty");
@@ -895,10 +938,10 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
       department,
       instructors: [instructorId], // Initialize with the provided instructor ID
       lettersAllowed,
-      examDate,
-      deadline,
-      location,
       students: [],
+      examDate: undefined,
+      deadline: undefined,
+      location: undefined,
       createdAt: new Date(),
       createdBy: instructorId,
       updatedAt: new Date() 
@@ -911,9 +954,13 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     this.addResitExamToInstructor(instructorId, resitExamId);
   }
 
-  getResitExam(id: string): ResitExam | undefined {
-    console.log(`id =======> : ${id}`);
-    return this.resitExams.find(resitExam => resitExam.id === id);
+
+  getResitExam(id: string): ResitExam {
+    const resitExam = this.resitExams.find(resitExam => resitExam.id === id);
+    if (!resitExam) {
+      throw new Error(`ResitExam with ID ${id} not found`);
+    }
+    return resitExam;
   }
 
   deleteResitExam(id: string, instructorID: string, resitExamId: string): void {
@@ -950,7 +997,49 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     }
   }
 
-  updateResitExam(resitExamId: string, name: string, instructorID: string, department: string, Letters: string[], examDate: Date, deadline: Date, location: string): void {
+  updateResitExamBySecretary(resitExamId: string, examDate: Date, deadline: Date, location: string): void {
+
+
+    const id = resitExamId;
+
+    //  Find the Exam to Update
+    const index = this.resitExams.findIndex(resitExam => resitExam.id === id);
+    if (index === -1) {
+      throw new Error(`Update failed: ResitExam with ID ${id} not found.`);
+    }
+    // Get a reference to the original exam object
+    const originalExam = this.resitExams[index];
+
+    //  Validate Inputs (New Values)
+    // IMPORTANT: Using direct array find due to potential recursion in your getInstructorById. Fix getInstructorById!
+
+    // Check if the NEW Date/Location combination conflicts with *other* exams
+    const conflictingExam = this.resitExams.find(exam =>
+        exam.id !== id && // Must not be the exam we are currently updating
+        exam.examDate?.getTime() === examDate.getTime() &&
+        exam.location === location
+    );
+    if (conflictingExam) {
+        throw new Error(`Update failed: Another ResitExam (ID: ${conflictingExam.id}) is already scheduled at location '${location}' for the specified date/time.`);
+    }
+
+
+
+
+    //  Perform the Update
+    // Create the updated exam object using spread syntax and new values
+    this.resitExams[index] = {
+      ...originalExam, // Keep unchanged fields (students, createdAt, createdBy, addedAt, name, department, etc.)
+      examDate: examDate,       // Update exam date
+      deadline: deadline,       // Update deadline
+      location: location,       // Update location
+      updatedAt: new Date()     // Add or update the 'updatedAt' timestamp
+    };
+
+
+
+  }
+  updateResitExamByInstructor(resitExamId: string, name: string, instructorID: string, department: string, Letters: string[]): void {
 
 
     const id = resitExamId;
@@ -970,15 +1059,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
         throw new Error(`Update failed: Instructor with ID ${instructorID} not found`);
     }
 
-    // Check if the NEW Date/Location combination conflicts with *other* exams
-    const conflictingExam = this.resitExams.find(exam =>
-        exam.id !== id && // Must not be the exam we are currently updating
-        exam.examDate.getTime() === examDate.getTime() &&
-        exam.location === location
-    );
-    if (conflictingExam) {
-        throw new Error(`Update failed: Another ResitExam (ID: ${conflictingExam.id}) is already scheduled at location '${location}' for the specified date/time.`);
-    }
 
 
 
@@ -988,9 +1068,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     this.resitExams[index] = {
       ...originalExam, // Keep unchanged fields (students, createdAt, createdBy, addedAt, name, department, etc.)
       lettersAllowed: Letters,  // Update allowed letters
-      examDate: examDate,       // Update exam date
-      deadline: deadline,       // Update deadline
-      location: location,       // Update location
+
       updatedAt: new Date()     // Add or update the 'updatedAt' timestamp
     };
 
@@ -1003,7 +1081,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     if (this.getInstructorById(instructorId) === undefined) {
       throw new Error("Instructor not found");
     }
-    return this.resitExams.filter(resitExam => resitExam.instructors.includes(instructorId));
+    return this.resitExams.filter(resitExam => resitExam.instructors?.includes(instructorId));
 
   }
 
@@ -1015,9 +1093,20 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     // Get all resit exams for the student
     const resitExams = this.resitExams.filter(resitExam => resitExam.students.includes(studentId));
     
-    // Map the resit exams to exclude the students array
+    // Map the resit exams to exclude the students array and ensure all dates are non-null
     // this is the response that will be sent to the client "student dashboard"
-    return resitExams.map(({ students, ...rest }) => rest);
+
+    return resitExams.map(({ students, ...rest }) => ({
+      ...rest,
+      name: rest.name || '',
+      department: rest.department || '',
+      instructors: rest.instructors || [],
+      lettersAllowed: rest.lettersAllowed || [],
+      examDate: rest.examDate || null,
+      deadline: rest.deadline || null,
+      location: rest.location || null,
+      updatedAt: rest.updatedAt || rest.createdAt // Use createdAt if updatedAt is null
+    }));
   }
 
   getInstructorResitExams(id: string): ResitExam[] {
@@ -1025,7 +1114,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     if (this.getInstructorById(id) === undefined) {
       throw new Error("Instructor not found");
     }
-    return this.resitExams.filter(resitExam => resitExam.instructors.includes(id));
+    return this.resitExams.filter(resitExam => resitExam.instructors?.includes(id));
   }
 
   // Get all resit exam results for a student

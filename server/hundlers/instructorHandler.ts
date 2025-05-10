@@ -375,16 +375,14 @@ export const createResitExam: RequestHandler<{ id: string }> = (req, res) : any 
   } = req.body;
 
   // Validate required fields
-  if (!courseId || !lettersAllowed || !examDate || !deadline || !location) {
+  if (!courseId || !lettersAllowed ) {
     return res.status(400).json({
       success: false,
       error: 'Missing required fields',
       missingFields: {
         courseId: !courseId,
         lettersAllowed: !lettersAllowed,
-        examDate: !examDate,
-        deadline: !deadline,
-        location: !location,
+
       }
     });
   }
@@ -428,16 +426,14 @@ export const createResitExam: RequestHandler<{ id: string }> = (req, res) : any 
     const resitExamId = course?.resitExamId;
 
     // Create the resit exam using the resitExamId from the course
-    db.createResitExam(
+    db.createResitExamByInstuctor(
       resitExamId,
       courseId,
       name,
       department,
       id, // instructorId
       lettersAllowed,
-      new Date(examDate),
-      new Date(deadline),
-      location
+
     );
 
     // Get the created resit exam using the resitExamId from the course
@@ -649,22 +645,16 @@ export const updateResitExam: RequestHandler<{ id: string }> = (req, res) : any 
   const { 
     courseId,
     lettersAllowed,
-    examDate,
-    deadline,
-    location
   } = req.body;
 
   // Validate required fields
-  if (!courseId || !lettersAllowed || !examDate || !deadline || !location) {
+  if (!courseId || !lettersAllowed) {
     return res.status(400).json({
       success: false,
       error: 'Missing required fields',
       missingFields: {
         courseId: !courseId,
         lettersAllowed: !lettersAllowed,
-        examDate: !examDate,
-        deadline: !deadline,
-        location: !location,
       }
     });
   }
@@ -702,15 +692,12 @@ export const updateResitExam: RequestHandler<{ id: string }> = (req, res) : any 
     const resitExamId = course.resitExamId;
 
     // Update the resit exam
-    db.updateResitExam(
+    db.updateResitExamByInstructor(
       resitExamId,
       name,
       id,
       department,
       lettersAllowed,
-      new Date(examDate),
-      new Date(deadline),
-      location
     );
 
     // Get the updated resit exam

@@ -52,22 +52,26 @@ export interface Course {
   department: string;
   students: string[];  // Array of student IDs
   instructor: string | undefined; // only one instructor
+  // courseRoom: string;
   createdAt: Date;
   createdBy: string;
   updatedAt: Date | null;
+}
 
+export interface CourseWithResitExam extends Course {
+  resitExamLettersAllowed: string[];
 }
 
 export interface ResitExam {
   id: string;
   courseId: string; 
-  name: string;
-  department: string;
-  instructors: string[];  // Changed from instructor: string to instructors: string[]
-  lettersAllowed: string[];
-  examDate: Date;
-  deadline: Date;
-  location: string;
+  name: string | undefined;
+  department: string | undefined;
+  instructors: string[] | undefined;  // Changed from instructor: string to instructors: string[]
+  lettersAllowed: string[] | undefined;
+  examDate: Date | undefined; 
+  deadline: Date | undefined;
+  location: string | undefined;
   students: string[];
   createdAt: Date;
   createdBy: string;
@@ -81,9 +85,9 @@ export interface ResitExamResponse {
   department: string;
   instructors: string[];
   lettersAllowed: string[];
-  examDate: Date;
-  deadline: Date;
-  location: string;
+  examDate: Date | null;
+  deadline: Date | null;
+  location: string | null;
   createdAt: Date;
   createdBy: string;
   updatedAt: Date | null;

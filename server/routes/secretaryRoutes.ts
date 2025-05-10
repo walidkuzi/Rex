@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCourses, getInstructors, getResitExams, getStudents } from '../hundlers/secretaryHandler';
+import { createResitExamBySecretary, getCourses, getInstructors, getResitExams, getStudents, updateResitExamBySecr } from '../hundlers/secretaryHandler';
 
 const router = express.Router();
 
@@ -15,5 +15,12 @@ router.get('/secretary/students', getStudents);
 
 // get all instructors
 router.get('/secretary/instructors', getInstructors);
+
+// update a resit exam
+router.put('/secretary/resit-exams/:id', updateResitExamBySecr);
+
+// create a resit exam
+router.post('/secretary/resit-exams', createResitExamBySecretary);
+
 
 export default router;
