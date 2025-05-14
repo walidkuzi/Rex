@@ -7,41 +7,33 @@ import { Secretary } from '../types';
 
 
 // get all courses
-export const getCourses: RequestHandler = (req, res) : any => {
-
-  // get the courses
-  const courses = db.getCourses();
+export const getCourses: RequestHandler = async (req, res): Promise<any> => {
+  const courses = await db.getCourses();
   res.json(courses);
 };
 
 
 // get all resit exams
-export const getResitExams: RequestHandler = (req, res) : any => {
-
-  // get the resit exams
-  const resitExams = db.getResitExams();
+export const getResitExams: RequestHandler = async (req, res): Promise<any> => {
+  const resitExams = await db.getResitExams();
   res.json(resitExams);
 };
 
 // get all students
-export const getStudents: RequestHandler = (req, res) : any => {
-
-  // get the students
-  const students = db.getStudents();
+export const getStudents: RequestHandler = async (req, res): Promise<any> => {
+  const students = await db.getStudents();
   res.json(students);
 };
 
 
 // get all instructors
-export const getInstructors: RequestHandler = (req, res) : any => {
-
-  // get the instructors
-  const instructors = db.getInstructors();
+export const getInstructors: RequestHandler = async (req, res): Promise<any> => {
+  const instructors = await db.getInstructors();
   res.json(instructors);
 };
 
 // update a resit exam
-export const updateResitExamBySecr: RequestHandler = (req, res) : any => {
+export const updateResitExamBySecr: RequestHandler = async (req, res): Promise<any> => {
   const { id } = req.params; // secretary id
   const { 
     courseId,
@@ -68,7 +60,7 @@ export const updateResitExamBySecr: RequestHandler = (req, res) : any => {
 
   try {
     // Validate instructor exists
-    const instructor = db.getSecretaryById(id);
+    const instructor = await db.getSecretaryById(id);
     if (!instructor) {
       return res.status(404).json({
         success: false,
@@ -77,7 +69,7 @@ export const updateResitExamBySecr: RequestHandler = (req, res) : any => {
     }
 
     // Get the course to extract resitExamId and other details
-    const course = db.getCourseById(courseId);
+    const course = await db.getCourseById(courseId);
     if (!course || !course.resitExamId) {
       return res.status(400).json({
         success: false,
@@ -85,12 +77,10 @@ export const updateResitExamBySecr: RequestHandler = (req, res) : any => {
       });
     }
 
-    // get the resit exam id from the course
-
     const resitExamId = course.resitExamId;
 
     // Update the resit exam
-    db.updateResitExamBySecretary(
+    await db.updateResitExamBySecretary(
       resitExamId,
       examDate,
       deadline,
@@ -98,7 +88,7 @@ export const updateResitExamBySecr: RequestHandler = (req, res) : any => {
     );
 
     // Get the updated resit exam
-    const updatedResitExam = db.getResitExam(resitExamId);
+    const updatedResitExam = await db.getResitExam(resitExamId);
     if (!updatedResitExam) {
       throw new Error('Failed to update resit exam');
     }
@@ -141,7 +131,7 @@ export const updateResitExamBySecr: RequestHandler = (req, res) : any => {
 
 
 // create a resit exam
-export const createResitExamBySecretary: RequestHandler<{ id: string }> = (req, res) : any => {
+export const createResitExamBySecretary: RequestHandler<{ id: string }> = async (req, res): Promise<any> => {
   const { id } = req.params; // secretary id
   const { 
     courseId,
@@ -153,7 +143,7 @@ export const createResitExamBySecretary: RequestHandler<{ id: string }> = (req, 
   const secr_id = id;
 
   // Validate required fields
-  if (!courseId  || !examDate || !deadline || !location) {
+  if (!courseId || !examDate || !deadline || !location) {
     return res.status(400).json({
       success: false,
       error: 'Missing required fields',
@@ -170,7 +160,7 @@ export const createResitExamBySecretary: RequestHandler<{ id: string }> = (req, 
 
   try {
     // Validate instructor exists
-    const instructor = db.getInstructorById(id);
+    const instructor = await db.getInstructorById(id);
     if (!instructor) {
       return res.status(404).json({
         success: false,
@@ -187,7 +177,7 @@ export const createResitExamBySecretary: RequestHandler<{ id: string }> = (req, 
     }
 
     // Get the course to extract resitExamId
-    const course = db.getCourseById(courseId);
+    const course = await db.getCourseById(courseId);
     if (!course || !course.resitExamId) {
       return res.status(400).json({
         success: false,
@@ -195,17 +185,12 @@ export const createResitExamBySecretary: RequestHandler<{ id: string }> = (req, 
       });
     }
 
-    // get the name and department from the course that the resit exam is for
-    const name = course?.name;
-    const department = course?.department;
-
-
-    // get the resitExamId from the course to use it as the id for the resit exam
-    //! so every course has a resit exam id we will use it as the id for the resit exam
-    const resitExamId = course?.resitExamId;
+    const name = course.name;
+    const department = course.department;
+    const resitExamId = course.resitExamId;
 
     // Create the resit exam using the resitExamId from the course
-    db.createResitExamBySecretary(
+    await db.createResitExamBySecretary(
       secr_id,
       resitExamId,
       courseId,
@@ -215,7 +200,7 @@ export const createResitExamBySecretary: RequestHandler<{ id: string }> = (req, 
     );
 
     // Get the created resit exam using the resitExamId from the course
-    const createdResitExam = db.getResitExam(course.resitExamId);
+    const createdResitExam = await db.getResitExam(course.resitExamId);
     if (!createdResitExam) {
       throw new Error('Failed to create resit exam');
     }

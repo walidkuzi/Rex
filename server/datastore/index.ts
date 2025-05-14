@@ -1,8 +1,8 @@
-import { CourseDao } from './CourseDao';
-import { InstructorDao } from './InstructorDao';
-import { ResitExamDao } from './ResitExamDao';
-import { StudentDao } from './StudentDao';
-import { inMemoryDatastore } from './memorydb';
+import { CourseDao } from './dao/CourseDao';
+import { InstructorDao } from './dao/InstructorDao';
+import { ResitExamDao } from './dao/ResitExamDao';
+import { StudentDao } from './dao/StudentDao';
+import { inMemoryDatastore } from './memorydb/InMemoryImplementaion';
 // import { inMemoryDatastore } from './memorydb';
 
 export interface Datastore extends CourseDao, InstructorDao, ResitExamDao, StudentDao {}

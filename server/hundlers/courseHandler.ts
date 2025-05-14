@@ -1,43 +1,52 @@
-import { RequestHandler } from 'express';
+import { Request, Response, RequestHandler } from 'express';
 import { db } from '../datastore';
+import { Course } from '../types';
 
 // Get all students in the course
-export const getCourseStudents: RequestHandler<{ id: string }> = (req, res) : any => {
+export const getCourseStudents: RequestHandler = async (req, res): Promise<any> => {
   const { id } = req.params; // course id
 
   try {
-    const students = db.getStudentsInCourse(id);
-    if (!students) {
+    const studentIds = await db.listCourseStudents(id);
+    if (!studentIds) {
       return res.status(404).json({
         success: false,
         error: 'Course not found'
       });
     }
 
+    const students = await Promise.all(
+      studentIds.map(async (studentId) => {
+        const student = await db.getAstudent(studentId);
+        if (!student) return null;
+        return {
+          id: student.id,
+          name: student.name,
+          email: student.email
+        };
+      })
+    );
+
     return res.status(200).json({
       success: true,
-      students: students.map(student => ({
-        id: student.id,
-        name: student.name,
-        email: student.email
-      }))
+      students: students.filter((student): student is { id: string; name: string; email: string } => student !== null)
     });
   } catch (error) {
     console.error('Error getting course students:', error);
     return res.status(500).json({
       success: false,
-      error: 'Server error while getting course students',
+      error: 'Error getting course students',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
 
 // Get course statistics
-export const getCourseStatistics: RequestHandler<{ id: string }> = (req, res) : any => {
+export const getCourseStatistics: RequestHandler<{ id: string }> = async (req, res): Promise<any> => {
   const { id } = req.params; // course id
 
   try {
-    const stats = db.getCourseStats(id);
+    const stats = await db.getCourseById(id);
     if (!stats) {
       return res.status(404).json({
         success: false,
@@ -60,27 +69,54 @@ export const getCourseStatistics: RequestHandler<{ id: string }> = (req, res) : 
 };
 
 // Update course details
-export const updateCourse: RequestHandler<{ id: string }> = (req, res) : any => {
-  const { id } = req.params; // course id
-  const { name, department, instructor, secretaryId } = req.body;
+export const updateCourse: RequestHandler = async (req, res): Promise<any> => {
+  const { id } = req.params;
+  const { 
+    name,
+    instructor,
+    department,
+    secretaryId
+  } = req.body;
 
-  if (!secretaryId) {
+  // Validate required fields
+  if (!name || !instructor || !department || !secretaryId) {
     return res.status(400).json({
       success: false,
-      error: 'Missing required field: secretaryId'
+      error: 'Missing required fields',
+      missingFields: {
+        name: !name,
+        instructor: !instructor,
+        department: !department,
+        secretaryId: !secretaryId
+      }
     });
   }
 
   try {
-    const success = db.updateCourseDetails(id, { name, department, instructor }, secretaryId);
-    if (!success) {
-      return res.status(400).json({
+    // Validate secretary exists
+    const secretary = await db.getSecretaryById(secretaryId);
+    if (!secretary) {
+      return res.status(404).json({
         success: false,
-        error: 'Failed to update course. Check if course exists and secretary is authorized.'
+        error: 'Secretary not found'
       });
     }
 
-    const updatedCourse = db.getCourseById(id);
+    // Update the course
+    await db.updateCourse(
+      id,
+      name,
+      instructor,
+      department,
+      secretaryId
+    );
+
+    // Get the updated course
+    const updatedCourse = await db.getCourseById(id);
+    if (!updatedCourse) {
+      throw new Error('Failed to update course');
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Course updated successfully',
@@ -88,49 +124,67 @@ export const updateCourse: RequestHandler<{ id: string }> = (req, res) : any => 
     });
   } catch (error) {
     console.error('Error updating course:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized')) {
+        return res.status(403).json({
+          success: false,
+          error: error.message
+        });
+      }
+    }
     return res.status(500).json({
       success: false,
-      error: 'Server error while updating course',
+      error: 'Error updating course',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
 
 // Get course instructor details
-export const getCourseInstructor: RequestHandler<{ id: string }> = (req, res) : any => {
-  const { id } = req.params; // course id
-
+export const getCourseInstructor: RequestHandler = async (req, res): Promise<any> => {
+  const { id } = req.params;
   try {
-    const instructor = db.getCourseInstructorDetails(id);
+    const instructorId = await db.getCourseInstructor(id);
+    if (!instructorId) {
+      return res.status(404).json({
+        success: false,
+        error: 'Course instructor not found'
+      });
+    }
+
+    const instructor = await db.getInstructorById(instructorId);
     if (!instructor) {
       return res.status(404).json({
         success: false,
-        error: 'Course not found or no instructor assigned'
+        error: 'Instructor not found'
       });
     }
 
     return res.status(200).json({
       success: true,
-      instructor: {
-        id: instructor.id,
-        name: instructor.name,
-        email: instructor.email
-      }
+      instructor
     });
   } catch (error) {
     console.error('Error getting course instructor:', error);
     return res.status(500).json({
       success: false,
-      error: 'Server error while getting course instructor',
+      error: 'Error getting course instructor',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
 
 // Create a new course
-export const createCourse: RequestHandler = (req, res) : any => {
-  const { courseId, resitExamId, name, department, secretaryId } = req.body;
+export const createCourse: RequestHandler = async (req, res): Promise<any> => {
+  const { 
+    courseId,
+    resitExamId,
+    name,
+    department,
+    secretaryId
+  } = req.body;
 
+  // Validate required fields
   if (!courseId || !resitExamId || !name || !department || !secretaryId) {
     return res.status(400).json({
       success: false,
@@ -145,63 +199,67 @@ export const createCourse: RequestHandler = (req, res) : any => {
     });
   }
 
-
-
-
   try {
-    // Verify secretary authorization
-    const secretary = db.getSecretaryById(secretaryId);
+    // Validate secretary exists
+    const secretary = await db.getSecretaryById(secretaryId);
     if (!secretary) {
-      return res.status(403).json({
+      return res.status(404).json({
         success: false,
-        error: 'Unauthorized Secretary ID'
+        error: 'Secretary not found'
       });
     }
 
-    // check if the Course Id not taken
-    const cId = db.getCourseById(courseId);
-    if (cId) { // if returned Ok then the course id is taken
-      return res.status(403).json({
-        success: false,
-        error: 'this Course Id is taken, choose another one'
-      });
-    }
-    
-    // check if the resit exam id is taken
-    const rId = db.getResitExam(resitExamId);
-    if (rId) { // if returned Ok then the resit exam id is taken
-      return res.status(403).json({
-        success: false,
-        error: 'this Resit Exam Id is taken, choose another one'
-      });
-    }
+    // Create the course object
+    const newCourse: Course = {
+      id: courseId,
+      name: name,
+      resitExamId: resitExamId,
+      department: department,
+      createdBy: secretaryId,
+      students: [],
+      instructor: "",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
     // Create the course
-    db.createCourse(courseId, resitExamId, name, department, secretaryId);
-    
+    await db.createCourse(newCourse);
+
     // Get the created course
-    const course = db.getCourseById(courseId);
+    const createdCourse = await db.getCourseById(courseId);
+    if (!createdCourse) {
+      throw new Error('Failed to create course');
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Course created successfully',
-      course: course
+      course: createdCourse
     });
   } catch (error) {
-    console.error('Error: creating course:', error); 
+    console.error('Error creating course:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized')) {
+        return res.status(403).json({
+          success: false,
+          error: error.message
+        });
+      }
+    }
     return res.status(500).json({
       success: false,
-      error: 'Server error while creating course',
+      error: 'Error creating course',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
 
 // Get a course by ID
-export const getCourse: RequestHandler<{ id: string }> = (req, res) : any => {
+export const getCourse: RequestHandler<{ id: string }> = async (req, res): Promise<any> => {
   const { id } = req.params;
 
   try {
-    const course = db.getCourseById(id);
+    const course = await db.getCourseById(id);
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -224,47 +282,51 @@ export const getCourse: RequestHandler<{ id: string }> = (req, res) : any => {
 };
 
 // Delete a course
-export const deleteCourse: RequestHandler<{ id: string }> = (req, res) : any => {
+export const deleteCourse: RequestHandler = async (req, res): Promise<any> => {
   const { id } = req.params;
   const { secretaryId } = req.body;
 
+  // Validate required fields
   if (!secretaryId) {
     return res.status(400).json({
       success: false,
-      error: 'Missing required field: secretaryId'
+      error: 'Missing required fields',
+      missingFields: {
+        secretaryId: !secretaryId
+      }
     });
   }
 
   try {
-    // Verify secretary authorization
-    const secretary = db.getSecretaryById(secretaryId);
+    // Validate secretary exists
+    const secretary = await db.getSecretaryById(secretaryId);
     if (!secretary) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized Secretary ID'
-      });
-    }
-
-    // Check if course exists
-    const course = db.getCourseById(id);
-    if (!course) {
       return res.status(404).json({
         success: false,
-        error: 'Course not found'
+        error: 'Secretary not found'
       });
     }
 
     // Delete the course
-    db.deleteCourse(id, secretaryId);
+    await db.deleteCourse(id, secretaryId);
+
     return res.status(200).json({
       success: true,
       message: 'Course deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting course:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized')) {
+        return res.status(403).json({
+          success: false,
+          error: error.message
+        });
+      }
+    }
     return res.status(500).json({
       success: false,
-      error: 'Server error while deleting course',
+      error: 'Error deleting course',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

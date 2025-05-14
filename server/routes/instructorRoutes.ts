@@ -35,8 +35,8 @@ router.put('/instructor/:id', updateInstructorInfo);
 
 // Instructor course management - Secretary
 router.post('/instructor/course/:id', assignInstructorToCourse);
-router.delete('/instructor/course/:id', unassignInstructorFromCourse);
 
+router.delete('/instructor/course/:id', unassignInstructorFromCourse);
 // Instructor course management - Instructor
 router.get('/instructor/courses/:id', getInstructorCourses);
 router.get('/instructor/c-details/:id', getInstructorCourseDetails);
