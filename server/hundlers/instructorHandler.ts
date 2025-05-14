@@ -1,6 +1,6 @@
 import { Request, Response, RequestHandler } from 'express';
 import { db } from '../datastore';
-import { Instructor, InstructorCourseDetails } from '../types';
+import { Instructor } from '../types';
 
 
 
@@ -245,24 +245,70 @@ export const assignInstructorToCourse: RequestHandler <{id: string}> = async (re
 // unassigning instructor from course
 export const unassignInstructorFromCourse: RequestHandler<{id: string}> = async (req, res): Promise<any> => {
   const { id } = req.params;
+<<<<<<< HEAD
   const {courseId, secretaryId } = req.body;
+=======
+  const { courseId, secretaryId } = req.body;
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
 
   try {
+    // Validate required fields
+    if (!courseId || !secretaryId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        missingFields: {
+          courseId: !courseId,
+          secretaryId: !secretaryId
+        }
+      });
+    }
+
     // Get all required entities with trimmed IDs
     const instructor = await db.getInstructorById(id.trim());
     const secretary = await db.getSecretaryById(secretaryId.trim());
     const course = await db.getCourseById(courseId.trim());
 
-    // checking the instructor id 
-    if (!instructor) {
+    // Validate all entities exist
+    if (!instructor || !secretary || !course) {
       return res.status(404).json({
         success: false,
+<<<<<<< HEAD
         error: 'Instructor not found'
+=======
+        error: 'One or more entities not found',
+        missingFields: {
+          instructor: !instructor,
+          secretary: !secretary,
+          course: !course
+        }
+      });
+    }
+
+    // Check if course has an instructor
+    if (!course.instructor) {
+      return res.status(400).json({
+        success: false,
+        error: 'Course does not have an instructor assigned'
+      });
+    }
+
+    // Check if the course has this specific instructor
+    if (course.instructor !== id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Course is assigned to a different instructor',
+        currentInstructor: course.instructor
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
       });
     }
 
     // Unassign instructor from course
+<<<<<<< HEAD
     const status = await db.unassignInstructorFromCourse(courseId, id);
+=======
+    const status = await db.unassignInstructorFromCourse(id, courseId);
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
     if (status) {
       // Get updated course data
       const updatedCourse = await db.getCourseById(courseId);
@@ -295,9 +341,6 @@ export const createResitExam: RequestHandler<{ id: string }> = async (req, res):
   const { 
     courseId,
     lettersAllowed,
-    examDate,
-    deadline,
-    location
   } = req.body;
 
   // Validate required fields
@@ -379,6 +422,7 @@ export const createResitExam: RequestHandler<{ id: string }> = async (req, res):
 };
 
 // unenroll instructor from course
+<<<<<<< HEAD
 export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId: string }> = async (req, res): Promise<any> => {
   // Extract route parameters (instructor ID and course ID)
   const { id, courseId } = req.params;
@@ -398,13 +442,35 @@ export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId
 
     //  Ensure instructor exists
     if (!instructor) return res.status(404).send('Instructor not found');
+=======
+// export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId: string }> = async (req, res): Promise<any> => {
+//   // Extract route parameters (instructor ID and course ID)
+//   const { id, courseId } = req.params;
+  
+//   // Extract body parameters (e.g., secretary ID for authorization)
+//   const secretaryId = req.body.secretaryId;
 
-    //  Ensure secretary is authorized
-    if (!secretary) return res.status(403).send('Unauthorized Secretary ID');
+//   //  Validate required fields early
+//   if (!secretaryId) {
+//     return res.status(400).send('Missing required field: secretaryId');
+//   }
 
-    //  Ensure course exists
-    if (!course) return res.status(404).send('Course not found');
+//   try {
+//     const instructor = await db.getInstructorById(id.trim());
+//     const secretary = await db.getSecretaryById(secretaryId.trim());
+//     const course = await db.getCourseById(courseId.trim());
 
+//     //  Ensure instructor exists
+//     if (!instructor) return res.status(404).send('Instructor not found');
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
+
+//     //  Ensure secretary is authorized
+//     if (!secretary) return res.status(403).send('Unauthorized Secretary ID');
+
+//     //  Ensure course exists
+//     if (!course) return res.status(404).send('Course not found');
+
+<<<<<<< HEAD
     //  Ensure instructor is actually assigned to the course
     if (!instructor.courses.includes(courseId)) {
       return res.status(400).send("Instructor not assigned to the course");
@@ -412,15 +478,24 @@ export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId
 
     // Perform the core action: Remove the course from the instructor's courses
     await db.unassignInstructorFromCourse(id, courseId);
+=======
+//     //  Ensure instructor is actually assigned to the course
+//     if (!instructor.courses.includes(courseId)) {
+//       return res.status(400).send("Instructor not assigned to the course");
+//     }
 
-    //  Respond with success
-    return res.status(200).send('Course removed from instructor successfully');
-  } catch (error) {
-    //  Catch and handle unexpected errors safely
-    console.error(error); // Optional: log for server-side debugging
-    return res.status(500).send('Error removing course from instructor');
-  }
-};
+//     // Perform the core action: Remove the course from the instructor's courses
+//     await db.unassignInstructorFromCourse(id, courseId);
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
+
+//     //  Respond with success
+//     return res.status(200).send('Course removed from instructor successfully');
+//   } catch (error) {
+//     //  Catch and handle unexpected errors safely
+//     console.error(error); // Optional: log for server-side debugging
+//     return res.status(500).send('Error removing course from instructor');
+//   }
+// };
 
 
 // Delete a resit exam
@@ -558,27 +633,52 @@ export const updateResitExam: RequestHandler<{ id: string }> = async (req, res):
     if (!instructor) {
       return res.status(404).json({
         success: false,
-        error: 'Instructor not found'
+        error: 'Instructor not found, check the instructor id'
       });
     }
 
     // Get the course to extract resitExamId
     const course = await db.getCourseById(courseId);
+<<<<<<< HEAD
     if (!course || !course.resitExamId) {
+=======
+    if (!course) {
       return res.status(400).json({
         success: false,
-        error: 'Course not found or does not have a resit exam ID'
+        error: 'Course not found, check the course id'
+      });
+    }
+
+    // Check if the resit exam exists and has letters allowed
+    const resitExam = await db.getResitExam(course.resitExamId);
+    const hasLettersAllowed = resitExam?.lettersAllowed && resitExam.lettersAllowed.length > 0;
+    
+    if (!resitExam || !hasLettersAllowed) {
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
+      return res.status(400).json({
+        success: false,
+        error: 'Resit exam not created or has no allowed letters',
+        details: {
+          resitExamExists: !!resitExam,
+          hasLettersAllowed
+        }
       });
     }
 
     const resitExamId = course.resitExamId;
 
+
+    
     // Update the resit exam
     await db.updateResitExamByInstructor(
       resitExamId,
+<<<<<<< HEAD
       course.name,
       id,
       course.department,
+=======
+
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
       lettersAllowed
     );
 

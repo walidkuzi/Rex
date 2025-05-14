@@ -60,7 +60,11 @@ export interface ResitExamDao {
    * @param department - The department offering the exam.
    * @param letters - The updated allowed letters for grading.
    */
+<<<<<<< HEAD
   updateResitExamByInstructor(id: string, name: string, instructorID: string, department: string, letters: string[]): Promise<void>;
+=======
+  updateResitExamByInstructor(resitExamId: string, letters: string[]): Promise<void>;
+>>>>>>> 55f1b2b (Various improvements and code cleanup)
 
   /** Retrieves all resit exams for a specific instructor.
    * 
