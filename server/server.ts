@@ -19,9 +19,8 @@ app.use('/', instructorRoutes);
 app.use('/', courseRoutes);
 app.use('/', secretaryRoutes);
 
-
 // general error handler for all errors
-// app.use(errorHandler);
+app.use(errorHandler);
 
 const port =  3000;
 app.listen(port, () => {

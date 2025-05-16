@@ -245,11 +245,7 @@ export const assignInstructorToCourse: RequestHandler <{id: string}> = async (re
 // unassigning instructor from course
 export const unassignInstructorFromCourse: RequestHandler<{id: string}> = async (req, res): Promise<any> => {
   const { id } = req.params;
-<<<<<<< HEAD
-  const {courseId, secretaryId } = req.body;
-=======
   const { courseId, secretaryId } = req.body;
->>>>>>> 55f1b2b (Various improvements and code cleanup)
 
   try {
     // Validate required fields
@@ -273,9 +269,6 @@ export const unassignInstructorFromCourse: RequestHandler<{id: string}> = async 
     if (!instructor || !secretary || !course) {
       return res.status(404).json({
         success: false,
-<<<<<<< HEAD
-        error: 'Instructor not found'
-=======
         error: 'One or more entities not found',
         missingFields: {
           instructor: !instructor,
@@ -299,16 +292,11 @@ export const unassignInstructorFromCourse: RequestHandler<{id: string}> = async 
         success: false,
         error: 'Course is assigned to a different instructor',
         currentInstructor: course.instructor
->>>>>>> 55f1b2b (Various improvements and code cleanup)
       });
     }
 
     // Unassign instructor from course
-<<<<<<< HEAD
-    const status = await db.unassignInstructorFromCourse(courseId, id);
-=======
     const status = await db.unassignInstructorFromCourse(id, courseId);
->>>>>>> 55f1b2b (Various improvements and code cleanup)
     if (status) {
       // Get updated course data
       const updatedCourse = await db.getCourseById(courseId);
@@ -422,7 +410,6 @@ export const createResitExam: RequestHandler<{ id: string }> = async (req, res):
 };
 
 // unenroll instructor from course
-<<<<<<< HEAD
 export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId: string }> = async (req, res): Promise<any> => {
   // Extract route parameters (instructor ID and course ID)
   const { id, courseId } = req.params;
@@ -442,35 +429,13 @@ export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId
 
     //  Ensure instructor exists
     if (!instructor) return res.status(404).send('Instructor not found');
-=======
-// export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId: string }> = async (req, res): Promise<any> => {
-//   // Extract route parameters (instructor ID and course ID)
-//   const { id, courseId } = req.params;
-  
-//   // Extract body parameters (e.g., secretary ID for authorization)
-//   const secretaryId = req.body.secretaryId;
 
-//   //  Validate required fields early
-//   if (!secretaryId) {
-//     return res.status(400).send('Missing required field: secretaryId');
-//   }
+    //  Ensure secretary is authorized
+    if (!secretary) return res.status(403).send('Unauthorized Secretary ID');
 
-//   try {
-//     const instructor = await db.getInstructorById(id.trim());
-//     const secretary = await db.getSecretaryById(secretaryId.trim());
-//     const course = await db.getCourseById(courseId.trim());
+    //  Ensure course exists
+    if (!course) return res.status(404).send('Course not found');
 
-//     //  Ensure instructor exists
-//     if (!instructor) return res.status(404).send('Instructor not found');
->>>>>>> 55f1b2b (Various improvements and code cleanup)
-
-//     //  Ensure secretary is authorized
-//     if (!secretary) return res.status(403).send('Unauthorized Secretary ID');
-
-//     //  Ensure course exists
-//     if (!course) return res.status(404).send('Course not found');
-
-<<<<<<< HEAD
     //  Ensure instructor is actually assigned to the course
     if (!instructor.courses.includes(courseId)) {
       return res.status(400).send("Instructor not assigned to the course");
@@ -478,24 +443,15 @@ export const unEnrollInstructorFromCourse: RequestHandler<{ id: string, courseId
 
     // Perform the core action: Remove the course from the instructor's courses
     await db.unassignInstructorFromCourse(id, courseId);
-=======
-//     //  Ensure instructor is actually assigned to the course
-//     if (!instructor.courses.includes(courseId)) {
-//       return res.status(400).send("Instructor not assigned to the course");
-//     }
 
-//     // Perform the core action: Remove the course from the instructor's courses
-//     await db.unassignInstructorFromCourse(id, courseId);
->>>>>>> 55f1b2b (Various improvements and code cleanup)
-
-//     //  Respond with success
-//     return res.status(200).send('Course removed from instructor successfully');
-//   } catch (error) {
-//     //  Catch and handle unexpected errors safely
-//     console.error(error); // Optional: log for server-side debugging
-//     return res.status(500).send('Error removing course from instructor');
-//   }
-// };
+    //  Respond with success
+    return res.status(200).send('Course removed from instructor successfully');
+  } catch (error) {
+    //  Catch and handle unexpected errors safely
+    console.error(error); // Optional: log for server-side debugging
+    return res.status(500).send('Error removing course from instructor');
+  }
+};
 
 
 // Delete a resit exam
@@ -539,8 +495,6 @@ export const deleteResitExam: RequestHandler<{ id: string }> = async (req, res):
 
 
 // get instructor's course or courses
-// this from the instructor's dashboard
-// /instructor/courses/:id
 export const getInstructorCourses: RequestHandler<{ id: string }> = async (req, res): Promise<any> => {
   const { id } = req.params;
   try {
@@ -598,8 +552,7 @@ export const getInstructorResitExams: RequestHandler<{ id: string }> = async (re
   });
 };
 
-export const getInstructorCourseDetails: RequestHandler = async (req, res): Promise<any> => {
-  
+export const getInstructorCourseDetails: RequestHandler<{ id: string }> = async (req, res): Promise<any> => {
   try {
     const { id } = req.params;
     const courseDetails = await db.getInstructorCourseDetails(id);
@@ -639,9 +592,6 @@ export const updateResitExam: RequestHandler<{ id: string }> = async (req, res):
 
     // Get the course to extract resitExamId
     const course = await db.getCourseById(courseId);
-<<<<<<< HEAD
-    if (!course || !course.resitExamId) {
-=======
     if (!course) {
       return res.status(400).json({
         success: false,
@@ -654,7 +604,6 @@ export const updateResitExam: RequestHandler<{ id: string }> = async (req, res):
     const hasLettersAllowed = resitExam?.lettersAllowed && resitExam.lettersAllowed.length > 0;
     
     if (!resitExam || !hasLettersAllowed) {
->>>>>>> 55f1b2b (Various improvements and code cleanup)
       return res.status(400).json({
         success: false,
         error: 'Resit exam not created or has no allowed letters',
@@ -666,32 +615,19 @@ export const updateResitExam: RequestHandler<{ id: string }> = async (req, res):
     }
 
     const resitExamId = course.resitExamId;
-
-
     
     // Update the resit exam
     await db.updateResitExamByInstructor(
       resitExamId,
-<<<<<<< HEAD
       course.name,
       id,
       course.department,
-=======
-
->>>>>>> 55f1b2b (Various improvements and code cleanup)
       lettersAllowed
     );
 
-    // Get the updated resit exam
-    const updatedResitExam = await db.getResitExam(resitExamId);
-    if (!updatedResitExam) {
-      throw new Error('Failed to update resit exam');
-    }
-
     return res.status(200).json({
       success: true,
-      message: 'Resit exam updated successfully',
-      resitExam: updatedResitExam
+      message: 'Resit exam updated successfully'
     });
   } catch (error) {
     console.error('Error updating resit exam:', error);
@@ -739,10 +675,9 @@ export const updateStudentResitExamGrades: RequestHandler<{ id: string }> = (req
 
 
 //? update a single student's resit exam results
-export const updateAStudentResitExamResults: RequestHandler<{ courseId: string, studentId: string }> = async (req, res): Promise<any> => {
+export const updateAStudentResitExamResults: RequestHandler<{ courseId: string; studentId: string }> = async (req, res): Promise<any> => {
   try {
     const { grade, gradeLetter } = req.body;
-    // Extract studentId and resitExamId from request params
     const { courseId, studentId } = req.params;
  
     const course = await db.getCourseById(courseId);
@@ -776,7 +711,7 @@ export const updateAStudentResitExamResults: RequestHandler<{ courseId: string, 
 
 //? update all students' resit exam results
 //! All students in the restit Exam must be in the results array
-export const updateAllStudentsResitExamResults: RequestHandler = async (req, res): Promise<any> => {
+export const updateAllStudentsResitExamResults: RequestHandler<{ resitExamId: string }> = async (req, res): Promise<any> => {
   try {
     const { resitExamId } = req.params;
     const { results } = req.body;
@@ -789,11 +724,7 @@ export const updateAllStudentsResitExamResults: RequestHandler = async (req, res
     }
 
     // validate students are enrolled in the resit exam
-    // Get enrolled students for the resit exam
     const resitExam = await db.getResitExam(resitExamId);
-    console.log(`resitExam : ${resitExam?.id}`);
-    console.log(`resitExam students : ${resitExam?.students}`);
-
     if (!resitExam) {
       return res.status(404).json({
         success: false,
@@ -801,25 +732,23 @@ export const updateAllStudentsResitExamResults: RequestHandler = async (req, res
       });
     }
 
-    // Update the results using the datastore function
     const success = await db.updateAllStudentsResitExamResults(resitExamId, results);
-    
     if (success) {
       return res.status(200).json({
         success: true,
-        message: 'All student resit exam results updated successfully'
+        message: 'All resit exam results updated successfully'
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update resit exam results'
       });
     }
-
-    return res.status(400).json({
-      success: false,
-      error: 'Failed to update student resit exam results'
-    });
   } catch (error) {
-    console.error('Error updating all student resit exam results:', error);
+    console.error('Error updating all resit exam results:', error);
     return res.status(500).json({
       success: false,
-      error: 'Error updating all student resit exam results',
+      error: 'Error updating resit exam results',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
@@ -827,12 +756,15 @@ export const updateAllStudentsResitExamResults: RequestHandler = async (req, res
 
 
 
-export const getResitExamAllResults: RequestHandler = async (req, res): Promise<any> => {
+export const getResitExamAllResults: RequestHandler<{ resitExamId: string }> = async (req, res): Promise<any> => {
   try {
     const { resitExamId } = req.params;
-
     const results = await db.getResitExamAllResults(resitExamId);
-    return res.status(200).json(results);
+    
+    return res.status(200).json({
+      success: true,
+      results
+    });
   } catch (error) {
     console.error('Error getting resit exam results:', error);
     return res.status(500).json({

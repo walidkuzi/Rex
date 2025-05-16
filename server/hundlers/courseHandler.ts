@@ -160,9 +160,12 @@ export const getCourseInstructor: RequestHandler = async (req, res): Promise<any
       });
     }
 
+    // Create a new object without the password field
+    const { password, ...instructorWithoutPassword } = instructor;
+
     return res.status(200).json({
       success: true,
-      instructor
+      instructor: instructorWithoutPassword
     });
   } catch (error) {
     console.error('Error getting course instructor:', error);
@@ -176,82 +179,82 @@ export const getCourseInstructor: RequestHandler = async (req, res): Promise<any
 
 // Create a new course
 export const createCourse: RequestHandler = async (req, res): Promise<any> => {
-  const { 
-    courseId,
-    resitExamId,
-    name,
-    department,
-    secretaryId
-  } = req.body;
+const { 
+  courseId,
+  resitExamId,
+  name,
+  department,
+  secretaryId
+} = req.body;
 
-  // Validate required fields
-  if (!courseId || !resitExamId || !name || !department || !secretaryId) {
-    return res.status(400).json({
+// Validate required fields
+if (!courseId || !resitExamId || !name || !department || !secretaryId) {
+  return res.status(400).json({
+    success: false,
+    error: 'Missing required fields',
+    missingFields: {
+      courseId: !courseId,
+      resitExamId: !resitExamId,
+      name: !name,
+      department: !department,
+      secretaryId: !secretaryId
+    }
+  });
+}
+
+try {
+  // Validate secretary exists
+  const secretary = await db.getSecretaryById(secretaryId);
+  if (!secretary) {
+    return res.status(404).json({
       success: false,
-      error: 'Missing required fields',
-      missingFields: {
-        courseId: !courseId,
-        resitExamId: !resitExamId,
-        name: !name,
-        department: !department,
-        secretaryId: !secretaryId
-      }
+      error: 'Secretary not found'
     });
   }
 
-  try {
-    // Validate secretary exists
-    const secretary = await db.getSecretaryById(secretaryId);
-    if (!secretary) {
-      return res.status(404).json({
+  // Create the course object
+  const newCourse: Course = {
+    id: courseId,
+    name: name,
+    resitExamId: resitExamId,
+    department: department,
+    createdBy: secretaryId,
+    students: [],
+    instructor: "",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  // Create the course
+  await db.createCourse(newCourse);
+
+  // Get the created course
+  const createdCourse = await db.getCourseById(courseId);
+  if (!createdCourse) {
+    throw new Error('Failed to create course');
+  }
+
+  return res.status(201).json({
+    success: true,
+    message: 'Course created successfully',
+    course: createdCourse
+  });
+} catch (error) {
+  console.error('Error creating course:', error);
+  if (error instanceof Error) {
+    if (error.message.includes('Unauthorized')) {
+      return res.status(403).json({
         success: false,
-        error: 'Secretary not found'
+        error: error.message
       });
     }
-
-    // Create the course object
-    const newCourse: Course = {
-      id: courseId,
-      name: name,
-      resitExamId: resitExamId,
-      department: department,
-      createdBy: secretaryId,
-      students: [],
-      instructor: "",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    // Create the course
-    await db.createCourse(newCourse);
-
-    // Get the created course
-    const createdCourse = await db.getCourseById(courseId);
-    if (!createdCourse) {
-      throw new Error('Failed to create course');
-    }
-
-    return res.status(201).json({
-      success: true,
-      message: 'Course created successfully',
-      course: createdCourse
-    });
-  } catch (error) {
-    console.error('Error creating course:', error);
-    if (error instanceof Error) {
-      if (error.message.includes('Unauthorized')) {
-        return res.status(403).json({
-          success: false,
-          error: error.message
-        });
-      }
-    }
-    return res.status(500).json({
-      success: false,
-      error: 'Error creating course',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
+  return res.status(500).json({
+    success: false,
+    error: 'Error creating course',
+    details: error instanceof Error ? error.message : 'Unknown error'
+  });
+}
 };
 
 // Get a course by ID

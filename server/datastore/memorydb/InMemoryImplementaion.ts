@@ -60,21 +60,12 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
       updatedAt: null
     },
     {
-<<<<<<< HEAD
-      id: "inst-001",
-      name: "Ahmed Mohamed",
-      email: "Ahmed.mohamed@example.com",
-      password: "password123",
-      courses: [],
-      resitExams: [],
-=======
       id: "2",
       name: "Ahmed Mohamed",
       email: "Ahmed.mohamed@example.com",
       password: "password1234",
       courses: ["course-002"],
       resitExams: [""],
->>>>>>> 55f1b2b (Various improvements and code cleanup)
       createdAt: new Date(),
       createdBy: "sec-001",
       updatedAt: null
@@ -441,11 +432,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return Promise.resolve();
   }
 
-<<<<<<< HEAD
-  getInstructorById(id: string): Promise<Instructor | undefined> {
-=======
   async getInstructorById(id: string): Promise<Instructor | undefined> {
->>>>>>> 55f1b2b (Various improvements and code cleanup)
     return Promise.resolve(this.instructor.find(i => i.id === id));
   }
 
@@ -538,8 +525,7 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return Promise.resolve(details);
   }
 
-<<<<<<< HEAD
-   async addCourseToInstructor(id: string, courseId: string): Promise<boolean> {
+  async addCourseToInstructor(id: string, courseId: string): Promise<boolean> {
     // determine which instructor to add the course to
     const instructor = await this.getInstructorById(id);
     const course = await this.getCourseById(courseId);
@@ -559,28 +545,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     }
     return false;
   }
-=======
-  //  async addCourseToInstructor(id: string, courseId: string): Promise<boolean> {
-  //   // determine which instructor to add the course to
-  //   const instructor = await this.getInstructorById(id);
-  //   const course = await this.getCourseById(courseId);
-
-  //   if (instructor && course) {
-  //     // add the course to the instructor
-  //     instructor.courses.push(courseId);
-  //     // add the instructor to the course
-  //     course.instructor = id;
-
-  //     const status = instructor.courses.includes(courseId);
-  //     const status2 = course.instructor === id;
-  //     if (status && status2) {
-  //       return true;
-  //     }
-  //     return false;
-  //   }
-  //   return false;
-  // }
->>>>>>> 55f1b2b (Various improvements and code cleanup)
 
    async addResitExamToInstructor(instructorId: string, resitExamId: string): Promise<boolean> {
     const instructor = await this.getInstructorById(instructorId);
@@ -608,59 +572,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
 
 
    async assignInstructorToCourse(instructorId: string, courseId: string): Promise<boolean> {
-<<<<<<< HEAD
-    const instructor = await this.getInstructorById(instructorId);
-    const course = await this.getCourseById(courseId);
-    
-    if (!instructor || !course) {
-      return false;
-    }
-    
-    // Check if the course already has an instructor
-    if (course.instructor) {
-      return false; // Course already has an instructor
-    }
-    
-    // Check if the instructor is already assigned to this course
-    if (instructor.courses.includes(courseId)) {
-      return false; // Already assigned
-    }
-    
-    // Add course to instructor's course list
-    instructor.courses.push(courseId);
-    
-    // Update the course with the new instructor
-    course.instructor = instructorId;
-    course.updatedAt = new Date();
-    
-    return true;
-  }
-
-   async unassignInstructorFromCourse(instructorId: string, courseId: string): Promise<boolean> {
-    const instructor = await this.getInstructorById(instructorId);
-    const course = await this.getCourseById(courseId);
-    
-    if (!instructor || !course) {
-      return false;
-    }
-    
-    // Check if the course has this instructor
-    if (course.instructor !== instructorId) {
-      return false; // Course doesn't have this instructor
-    }
-    
-    // Remove course from instructor's course list
-    const courseIndex = instructor.courses.indexOf(courseId);
-    if (courseIndex !== -1) {
-      instructor.courses.splice(courseIndex, 1);
-    }
-    
-    // Remove instructor from course
-    course.instructor = undefined;
-    course.updatedAt = new Date();
-    
-    return true;
-=======
     try {
       // Get instructor
       const instructor = await this.getInstructorById(instructorId);
@@ -741,81 +652,29 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
   }
 
    async unassignInstructorFromCourse(instructorId: string, courseId: string): Promise<boolean> {
-    try {
-      // Get instructor
-      const instructor = await this.getInstructorById(instructorId);
-      if (!instructor) {
-        console.error(`Instructor with ID ${instructorId} not found`);
-        return false;
-      }
-
-      // Check if the Course Id exists
-      const course = await this.getCourseById(courseId);
-      if (!course) {
-        console.error(`Course with ID ${courseId} not found`);
-        return false;
-      }
-
-      console.log('Before unassign - Course:', {
-        id: course.id,
-        instructor: course.instructor,
-        originalCourse: this.courses.find(c => c.id === courseId)
-      });
-
-      // Check if the course has this instructor
-      if (course.instructor !== instructorId) {
-        console.error(`Course ${courseId} does not have instructor ${instructorId}`);
-        return false;
-      }
-
-      // Remove course from instructor's course list
-      const courseIndex = instructor.courses.indexOf(courseId);
-      if (courseIndex !== -1) {
-        instructor.courses.splice(courseIndex, 1);
-      }
-
-      // Update the course in the array
-      const index = this.courses.findIndex(c => c.id === courseId);
-      if (index !== -1) {
-        const updatedCourse = {
-          ...this.courses[index],
-          instructor: undefined,
-          updatedAt: new Date()
-        };
-        console.log('Updating course with:', updatedCourse);
-        this.courses[index] = updatedCourse;
-      }
-
-      // Verify the changes were successful
-      const updatedInstructor = await this.getInstructorById(instructorId);
-      const updatedCourse = await this.getCourseById(courseId);
-
-      console.log('After unassign - Course:', {
-        id: updatedCourse?.id,
-        instructor: updatedCourse?.instructor,
-        originalCourse: this.courses.find(c => c.id === courseId)
-      });
-
-      if (!updatedInstructor || !updatedCourse) {
-        console.error('Failed to verify changes');
-        return false;
-      }
-
-      const success = 
-        !updatedInstructor.courses.includes(courseId) && 
-        updatedCourse.instructor === undefined;
-
-      if (!success) {
-        console.error('Failed to verify instructor-course unassignment');
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error in unassignInstructorFromCourse:', error);
+    const instructor = await this.getInstructorById(instructorId);
+    const course = await this.getCourseById(courseId);
+    
+    if (!instructor || !course) {
       return false;
     }
->>>>>>> 55f1b2b (Various improvements and code cleanup)
+    
+    // Check if the course has this instructor
+    if (course.instructor !== instructorId) {
+      return false; // Course doesn't have this instructor
+    }
+    
+    // Remove course from instructor's course list
+    const courseIndex = instructor.courses.indexOf(courseId);
+    if (courseIndex !== -1) {
+      instructor.courses.splice(courseIndex, 1);
+    }
+    
+    // Remove instructor from course
+    course.instructor = undefined;
+    course.updatedAt = new Date();
+    
+    return true;
   }
 
 
@@ -845,15 +704,12 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     const course = this.courses.find(c => c.id === courseId);
     if (!course) return Promise.resolve(undefined);
 
-<<<<<<< HEAD
-=======
     console.log('getCourseById - Found course:', {
       id: course.id,
       instructor: course.instructor,
       originalCourse: course
     });
 
->>>>>>> 55f1b2b (Various improvements and code cleanup)
     // Only try to get resit exam if course has a resit exam linked to it's resitExamId
     let resitExamLettersAllowed: string[] = [];
     if (course.resitExamId) {
@@ -866,12 +722,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
       }
     }
     
-<<<<<<< HEAD
-    return Promise.resolve({
-      ...course,
-      resitExamLettersAllowed
-    });
-=======
     // Create a new object to avoid modifying the original
     const courseWithResitExam: CourseWithResitExam = {
       ...course,
@@ -886,7 +736,6 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     });
     
     return Promise.resolve(courseWithResitExam);
->>>>>>> 55f1b2b (Various improvements and code cleanup)
   }
 
   // only instructor id
@@ -1238,11 +1087,8 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     });
   }
 
-<<<<<<< HEAD
-=======
   // update resit exam by secretary
->>>>>>> 55f1b2b (Various improvements and code cleanup)
-   async updateResitExamBySecretary(
+  async updateResitExamBySecretary(
     resitExamId: string,
     examDate: Date,
     deadline: Date,
@@ -1319,32 +1165,20 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     return Promise.resolve();
   }
 
-<<<<<<< HEAD
-   async updateResitExamByInstructor(id: string, name: string, instructorID: string, department: string, letters: string[]): Promise<void> {
+  // update resit exam by instructor
+  async updateResitExamByInstructor(id: string, name: string, instructorID: string, department: string, letters: string[]): Promise<void> {
     const instructor = await this.getInstructorById(instructorID);
     if (!instructor) {
       return Promise.reject(new Error("Instructor not found"));
     }
 
     const resitExam = await this.getResitExam(id);
-=======
-  // update resit exam by instructor
-  async updateResitExamByInstructor(resitExamId: string, letters: string[]): Promise<void> {
-    const resitExam = await this.getResitExam(resitExamId);
->>>>>>> 55f1b2b (Various improvements and code cleanup)
     if (!resitExam) {
       return Promise.reject(new Error("Resit exam not found"));
     }
 
-<<<<<<< HEAD
-    // Update resit exam details
-    resitExam.name = name;
-    resitExam.department = department;
-    resitExam.lettersAllowed = letters;
-    resitExam.updatedAt = new Date();
-=======
     console.log('Updating resit exam:', {
-      id: resitExamId,
+      id: id,
       currentLetters: resitExam.lettersAllowed,
       newLetters: letters
     });
@@ -1352,16 +1186,17 @@ import { Course, Secretary, ResitExam, Instructor, Student, StudentCourseGrade, 
     // Create a new object to maintain immutability
     const updatedResitExam = {
       ...resitExam,
+      name,
+      department,
       lettersAllowed: letters,
       updatedAt: new Date()
     };
 
     // Update the resit exam in the array
-    const index = this.resitExams.findIndex(exam => exam.id === resitExamId);
+    const index = this.resitExams.findIndex(exam => exam.id === id);
     if (index !== -1) {
       this.resitExams[index] = updatedResitExam;
     }
->>>>>>> 55f1b2b (Various improvements and code cleanup)
 
     return Promise.resolve();
   }
