@@ -303,6 +303,6 @@ Yes — contributions, fixes, and improvements are welcome via Pull Requests.
 
 <div align="center">
 
-Built with ❤️ by [@walidkuzi](https://github.com/walidkuzi) & a group of great other Software Engineers 
+Built with ❤️ by [@walidkuzi](https://github.com/walidkuzi) & [@youssef-atallah](https://github.com/youssef-atallah) & [@Dani-x-Boi](https://github.com/Dani-x-Boi) & [@Mkv47](https://github.com/Mkv47) & a group of great other Software Engineers 
 
 </div>
